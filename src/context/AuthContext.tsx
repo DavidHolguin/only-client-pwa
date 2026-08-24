@@ -25,38 +25,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // 1. Check local session storage
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setCustomer(parsed.customer)
-        setToken(parsed.token)
-      } catch (e) {
-        console.error('Failed to parse saved session', e)
+    const initSession = async () => {
+      // 1. Check local session storage
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setCustomer(parsed.customer)
+          setToken(parsed.token)
+        } catch (e) {
+          console.error('Failed to parse saved session', e)
+        }
+      } else {
+        setCustomer(null)
+        setToken(null)
       }
-    } else {
-      // Default to initial demo customer for seamless UX if first launch
-      setCustomer(INITIAL_CUSTOMER)
-      setToken('demo-jwt-token-2026')
+
+      // 2. Check URL search params for deep-link magic token (?token=... / ?phone=...)
+      const params = new URLSearchParams(window.location.search)
+      const magicToken = params.get('token')
+      const magicPhone = params.get('phone')
+
+      if (magicPhone) {
+        const cleanPhone = magicPhone.replace(/\D/g, '')
+        const effectiveToken = magicToken || 'demo-jwt-token-2026'
+        
+        try {
+          // Query Supabase for the real customer profile matching this phone number
+          const { data: dbProfile } = await supabase
+            .from('customer_profiles')
+            .select('*')
+            .eq('phone', cleanPhone)
+            .maybeSingle()
+
+          const resolvedProfile: CustomerProfile = {
+            id: dbProfile?.id || `cust-${cleanPhone}`,
+            phone: cleanPhone,
+            full_name: dbProfile?.full_name || 'Cliente Only Home',
+            avatar_url: dbProfile?.avatar_url || '',
+            birthday: dbProfile?.birthday || '',
+            total_points: dbProfile?.total_points || 0,
+            tier: dbProfile?.tier || 'bronce',
+            lead_temperature: dbProfile?.lead_temperature || 50,
+            addresses: dbProfile?.addresses || [],
+            referral_code: dbProfile?.referral_code || `ONLY-${cleanPhone.slice(-4)}`,
+            created_at: dbProfile?.created_at || new Date().toISOString(),
+            updated_at: dbProfile?.updated_at || new Date().toISOString(),
+          }
+
+          setCustomer(resolvedProfile)
+          setToken(effectiveToken)
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ customer: resolvedProfile, token: effectiveToken })
+          )
+        } catch (err) {
+          console.warn('Failed to fetch profile from Supabase, loading fallback context', err)
+          const fallbackProfile: CustomerProfile = {
+            ...INITIAL_CUSTOMER,
+            phone: cleanPhone,
+            full_name: 'Cliente Only Home',
+          }
+          setCustomer(fallbackProfile)
+          setToken(effectiveToken)
+        }
+      }
+      setIsLoading(false)
     }
 
-    // 2. Check URL search params for deep-link magic token (?token=... / ?phone=...)
-    const params = new URLSearchParams(window.location.search)
-    const magicToken = params.get('token')
-    const magicPhone = params.get('phone')
-
-    if (magicToken && magicPhone) {
-      const mockProfile: CustomerProfile = {
-        ...INITIAL_CUSTOMER,
-        phone: magicPhone,
-      }
-      setCustomer(mockProfile)
-      setToken(magicToken)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ customer: mockProfile, token: magicToken }))
-    }
-
-    setIsLoading(false)
+    initSession()
   }, [])
 
   const requestOtp = async (phone: string) => {
@@ -107,9 +144,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Valid demo verification if code is 6 digits
     if (code.length === 6) {
+      const cleanPhone = phone.replace(/\D/g, '')
+      let realName = 'Cliente Only Home'
+      let dbAddresses: any[] = []
+      
+      try {
+        const { data } = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .eq('phone', cleanPhone)
+          .maybeSingle()
+        if (data) {
+          realName = data.full_name || 'Cliente Only Home'
+          dbAddresses = data.addresses || []
+        }
+      } catch (err) {
+        console.warn('Could not resolve customer name from db during demo verify OTP', err)
+      }
+
       const demoCust: CustomerProfile = {
         ...INITIAL_CUSTOMER,
-        phone: phone,
+        phone: cleanPhone,
+        full_name: realName,
+        addresses: dbAddresses,
       }
       setCustomer(demoCust)
       setToken('jwt-customer-' + Date.now())
