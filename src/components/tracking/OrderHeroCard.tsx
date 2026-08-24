@@ -208,17 +208,6 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
               key={item.id}
               className="flex items-center gap-3 p-3 rounded-2xl bg-secondary/35 border border-border/40 hover:bg-secondary/50 transition-colors"
             >
-              {item.image_url ? (
-                <img
-                  src={item.image_url}
-                  alt={item.referencia}
-                  className="w-12 h-12 rounded-xl object-cover border border-border shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-card flex items-center justify-center text-muted-foreground shrink-0 border border-border">
-                  <Package className="w-6 h-6" />
-                </div>
-              )}
               <div className="flex-1 min-w-0">
                 <h5 className="text-xs font-extrabold text-foreground truncate">{item.referencia}</h5>
                 <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">

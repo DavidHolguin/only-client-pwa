@@ -85,17 +85,6 @@ export const OrdersPage: React.FC = () => {
               <div className="space-y-2">
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.referencia}
-                        className="w-10 h-10 rounded-xl object-cover border border-border shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground shrink-0">
-                        <Package className="w-5 h-5" />
-                      </div>
-                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-foreground truncate">{item.referencia}</p>
                       <p className="text-[11px] text-muted-foreground font-mono">

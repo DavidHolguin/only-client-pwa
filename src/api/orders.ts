@@ -126,26 +126,10 @@ export async function getOrderByNumber(numeroPedido: string): Promise<CustomerOr
       return normalizeOrder(rawOrder, itemsData || [])
     }
   } catch (err) {
-    console.warn('[getOrderByNumber] Supabase query failed, falling back to mock dataset', err)
+    console.warn('[getOrderByNumber] Supabase query failed', err)
   }
 
-  // 3. Fallback inteligente: buscar en SAMPLE_ORDERS o sintetizar pedido interactivo para pruebas
-  const localMatch = SAMPLE_ORDERS.find(
-    (o) => o.numero_pedido === cleanNumber || o.id === cleanNumber || o.opv?.includes(cleanNumber)
-  )
-
-  if (localMatch) {
-    return localMatch
-  }
-
-  // Sintetizar pedido dinámico con el número solicitado
-  return {
-    ...SAMPLE_ORDERS[0],
-    id: `ord-${cleanNumber}`,
-    numero_pedido: cleanNumber,
-    cliente_nombre: 'Cliente Only Home',
-    eta_texto: `Tu pedido #${cleanNumber} fue creado con éxito y está programado para entrega.`,
-  }
+  return null
 }
 
 /**
