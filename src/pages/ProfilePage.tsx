@@ -49,7 +49,7 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 px-4 pb-28">
+    <div className="space-y-4 px-4 pb-36">
       {/* Profile Header Card */}
       <div className="p-5 rounded-3xl glass-card bg-card border border-border/80 shadow-md flex items-center gap-4">
         <div className="relative">

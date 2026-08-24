@@ -19,7 +19,7 @@ export const OrdersPage: React.FC = () => {
   })
 
   return (
-    <div className="space-y-4 px-4 pb-24">
+    <div className="space-y-4 px-4 pb-36">
       {/* Header Title */}
       <div className="pt-2">
         <h2 className="text-xl font-extrabold tracking-tight text-foreground">

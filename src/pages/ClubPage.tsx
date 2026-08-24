@@ -17,7 +17,7 @@ export const ClubPage: React.FC = () => {
   if (!customer) return null
 
   return (
-    <div className="space-y-5 px-4 pb-24">
+    <div className="space-y-5 px-4 pb-36">
       {/* Points & Tier Card */}
       <PointsBalanceCard customer={customer} />
 

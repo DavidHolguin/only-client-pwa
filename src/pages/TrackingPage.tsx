@@ -88,7 +88,7 @@ export const TrackingPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-36">
       {/* PWA Install Banner */}
       <PwaInstallPrompt />
 

@@ -35,17 +35,28 @@ function getStepIndex(status: OrderStatus): number {
 
 export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className = '' }) => {
   const currentIndex = getStepIndex(status)
+  const currentStep = STEPS[currentIndex]
 
   return (
-    <div className={`w-full py-2 ${className}`}>
-      <div className="relative flex items-center justify-between">
-        {/* Continuous Background Line */}
-        <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1 bg-border/60 z-0" />
+    <div className={`w-full py-4 ${className}`}>
+      {/* Top micro-badge indicator */}
+      <div className="flex justify-between items-center mb-4 px-1">
+        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+          Progreso del pedido
+        </span>
+        <span className="text-[10px] font-extrabold text-brand-blue dark:text-brand-lightBlue px-2 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20">
+          Fase {currentIndex + 1} de 5: {currentStep?.label.toUpperCase()}
+        </span>
+      </div>
+
+      <div className="relative flex items-center justify-between px-2">
+        {/* Background Line Connector */}
+        <div className="absolute left-6 right-6 top-[15px] h-[3px] bg-slate-200 dark:bg-slate-800 z-0 rounded-full" />
         
-        {/* Active Progress Bar */}
+        {/* Animated Fill Line */}
         <div
-          className="absolute left-4 top-1/2 -translate-y-1/2 h-1 bg-brand-blue transition-all duration-500 z-0 shadow-glow-blue"
-          style={{ width: `${(currentIndex / (STEPS.length - 1)) * 90}%` }}
+          className="absolute left-6 top-[15px] h-[3px] bg-gradient-to-r from-brand-blue to-blue-500 transition-all duration-700 z-0 rounded-full shadow-[0_0_8px_rgba(0,102,255,0.5)]"
+          style={{ width: `calc(${(currentIndex / (STEPS.length - 1)) * 100}% - 24px)` }}
         />
 
         {STEPS.map((step, idx) => {
@@ -54,29 +65,33 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
           const Icon = step.icon
 
           return (
-            <div key={step.key} className="relative z-10 flex flex-col items-center">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-brand-blue text-white shadow-sm'
-                    : isCurrent
-                    ? 'bg-brand-blue text-white ring-4 ring-brand-blue/30 shadow-glow-blue animate-pulse-subtle'
-                    : 'bg-card border border-border text-muted-foreground'
-                }`}
-              >
-                {isCompleted ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                ) : (
-                  <Icon className="w-3.5 h-3.5" />
-                )}
+            <div key={step.key} className="relative z-10 flex flex-col items-center flex-1">
+              {/* Outer circle wrapper for crisp alignment */}
+              <div className="h-8 flex items-center justify-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
+                    isCompleted
+                      ? 'bg-brand-blue border-brand-blue text-white shadow-md'
+                      : isCurrent
+                      ? 'bg-card border-brand-blue text-brand-blue shadow-[0_0_12px_rgba(0,102,255,0.4)] scale-110'
+                      : 'bg-card border-slate-200 dark:border-slate-800 text-muted-foreground'
+                  }`}
+                >
+                  {isCompleted ? (
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  ) : (
+                    <Icon className="w-3.5 h-3.5" />
+                  )}
+                </div>
               </div>
+              
               <span
-                className={`mt-1.5 text-[10px] text-center whitespace-nowrap font-medium ${
+                className={`mt-2.5 text-[10px] text-center font-bold tracking-tight transition-colors duration-300 ${
                   isCurrent
-                    ? 'text-brand-blue dark:text-brand-lightBlue font-bold'
+                    ? 'text-brand-blue dark:text-brand-lightBlue font-extrabold'
                     : isCompleted
-                    ? 'text-foreground'
-                    : 'text-muted-foreground'
+                    ? 'text-foreground/80'
+                    : 'text-muted-foreground/70'
                 }`}
               >
                 {step.label}
