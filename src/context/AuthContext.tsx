@@ -51,11 +51,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const effectiveToken = magicToken || 'demo-jwt-token-2026'
         
         try {
-          // Query Supabase for the real customer profile matching this phone number
+          // Query Supabase matching full clean phone or the last 10 digits (handling 57 prefix variations)
           const { data: dbProfile } = await supabase
             .from('customer_profiles')
             .select('*')
-            .eq('phone', cleanPhone)
+            .or(`phone.eq.${cleanPhone},phone.ilike.%${cleanPhone.slice(-10)}`)
             .maybeSingle()
 
           const resolvedProfile: CustomerProfile = {
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data } = await supabase
           .from('customer_profiles')
           .select('*')
-          .eq('phone', cleanPhone)
+          .or(`phone.eq.${cleanPhone},phone.ilike.%${cleanPhone.slice(-10)}`)
           .maybeSingle()
         if (data) {
           realName = data.full_name || 'Cliente Only Home'
