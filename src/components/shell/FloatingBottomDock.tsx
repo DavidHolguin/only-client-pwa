@@ -23,7 +23,7 @@ export const FloatingBottomDock: React.FC = () => {
 
   return (
     <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-      <nav className="pointer-events-auto flex items-center justify-around gap-1 px-3 py-2 rounded-full bg-white/95 border border-slate-200 shadow-lg shadow-black/8 max-w-sm w-full backdrop-blur-xl">
+      <nav className="pointer-events-auto flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/10 max-w-md w-full backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path
           const Icon = item.icon
@@ -32,30 +32,35 @@ export const FloatingBottomDock: React.FC = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`relative flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all duration-200 ${
+              className={`flex-1 relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 select-none ${
                 isActive
-                  ? 'text-white font-semibold'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'text-white'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
+              {/* Active pill background */}
               {isActive && (
                 <motion.div
                   layoutId="activeDockPill"
-                  className="absolute inset-0 bg-brand-blue rounded-full shadow-md shadow-brand-blue/30"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  className="absolute inset-0 bg-brand-blue rounded-xl shadow-md shadow-brand-blue/25"
+                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                 />
               )}
 
-              <div className="relative z-10 flex flex-col items-center gap-0.5">
-                <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : ''}`} />
-                <span className="text-[10px] tracking-tight">{item.label}</span>
-
-                {item.badge && !isActive && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-                )}
+              {/* Icon & Label container */}
+              <div className="relative z-10 flex flex-col items-center justify-center gap-0.5">
+                <div className="relative flex items-center justify-center">
+                  <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105 stroke-[2.2]' : 'stroke-[1.8]'}`} />
+                  {item.badge && !isActive && (
+                    <span className="absolute -top-1 -right-1.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[10px] tracking-tight leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
+                  {item.label}
+                </span>
               </div>
             </button>
           )
@@ -64,3 +69,4 @@ export const FloatingBottomDock: React.FC = () => {
     </div>
   )
 }
+

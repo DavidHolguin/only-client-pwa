@@ -37,26 +37,29 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
   const currentIndex = getStepIndex(status)
   const currentStep = STEPS[currentIndex]
 
+  // Para 5 pasos, el centro del primer círculo está en 10% y el último en 90% (rango de 80%)
+  const fillPercentage = (currentIndex / (STEPS.length - 1)) * 80
+
   return (
-    <div className={`w-full py-4 ${className}`}>
+    <div className={`w-full py-3 ${className}`}>
       {/* Top micro-badge indicator */}
-      <div className="flex justify-between items-center mb-4 px-1">
+      <div className="flex justify-between items-center mb-3 px-1">
         <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-          Progreso del pedido
+          Progreso de tu pedido
         </span>
-        <span className="text-[10px] font-extrabold text-brand-blue dark:text-brand-lightBlue px-2 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20">
-          Fase {currentIndex + 1} de 5: {currentStep?.label.toUpperCase()}
+        <span className="text-[10px] font-extrabold text-brand-blue px-2.5 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20">
+          Fase {currentIndex + 1} de 5: {currentStep?.label}
         </span>
       </div>
 
-      <div className="relative flex items-center justify-between px-2">
-        {/* Background Line Connector */}
-        <div className="absolute left-6 right-6 top-[15px] h-[3px] bg-slate-200 dark:bg-slate-800 z-0 rounded-full" />
+      <div className="relative flex items-center justify-between w-full">
+        {/* Background Line Connector: Conecta del centro del 1er paso (10%) al último (90%) */}
+        <div className="absolute left-[10%] right-[10%] top-[16px] h-[3px] bg-slate-200 z-0 rounded-full" />
         
         {/* Animated Fill Line */}
         <div
-          className="absolute left-6 top-[15px] h-[3px] bg-gradient-to-r from-brand-blue to-blue-500 transition-all duration-700 z-0 rounded-full shadow-[0_0_8px_rgba(0,102,255,0.5)]"
-          style={{ width: `calc(${(currentIndex / (STEPS.length - 1)) * 100}% - 24px)` }}
+          className="absolute left-[10%] top-[16px] h-[3px] bg-brand-blue transition-all duration-500 z-0 rounded-full"
+          style={{ width: `${fillPercentage}%` }}
         />
 
         {STEPS.map((step, idx) => {
@@ -66,15 +69,15 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
 
           return (
             <div key={step.key} className="relative z-10 flex flex-col items-center flex-1">
-              {/* Outer circle wrapper for crisp alignment */}
+              {/* Outer circle wrapper for crisp center alignment */}
               <div className="h-8 flex items-center justify-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isCompleted
-                      ? 'bg-brand-blue border-brand-blue text-white shadow-md'
+                      ? 'bg-brand-blue border-2 border-brand-blue text-white shadow-xs'
                       : isCurrent
-                      ? 'bg-card border-brand-blue text-brand-blue shadow-[0_0_12px_rgba(0,102,255,0.4)] scale-110'
-                      : 'bg-card border-slate-200 dark:border-slate-800 text-muted-foreground'
+                      ? 'bg-white border-2 border-brand-blue text-brand-blue ring-4 ring-brand-blue/15 scale-110 shadow-sm'
+                      : 'bg-white border-2 border-slate-200 text-slate-400'
                   }`}
                 >
                   {isCompleted ? (
@@ -86,12 +89,12 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
               </div>
               
               <span
-                className={`mt-2.5 text-[10px] text-center font-bold tracking-tight transition-colors duration-300 ${
+                className={`mt-2 text-[10px] text-center tracking-tight transition-colors duration-200 leading-tight ${
                   isCurrent
-                    ? 'text-brand-blue dark:text-brand-lightBlue font-extrabold'
+                    ? 'text-brand-blue font-extrabold'
                     : isCompleted
-                    ? 'text-foreground/80'
-                    : 'text-muted-foreground/70'
+                    ? 'text-slate-800 font-bold'
+                    : 'text-slate-400 font-medium'
                 }`}
               >
                 {step.label}

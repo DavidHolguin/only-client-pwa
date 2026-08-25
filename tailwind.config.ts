@@ -41,10 +41,10 @@ export default {
           glow: 'rgba(255, 184, 0, 0.3)',
         },
         brand: {
-          blue: '#0066FF',
-          darkBlue: '#0047BA',
-          lightBlue: '#3385FF',
-          cyan: '#00D2FF',
+          blue: '#003B66', // Official Only Home Navy Blue
+          darkBlue: '#002642',
+          lightBlue: '#00538C',
+          cyan: '#00A3E0',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

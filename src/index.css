@@ -11,9 +11,9 @@
     --card-hover: 40 20% 96%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 217 100% 50%; /* #0066FF Only Blue */
+    --primary: 205 100% 20%; /* #003B66 Official Only Home Blue */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: rgba(0, 102, 255, 0.15);
+    --primary-glow: rgba(0, 59, 102, 0.15);
     --secondary: 40 15% 94%; /* #F2EFE9 Soft warm gray */
     --secondary-foreground: 222 47% 15%;
     --muted: 40 10% 93%;
@@ -22,7 +22,7 @@
     --accent-foreground: 222 47% 11%;
     --border: 35 15% 90%; /* #E8E5DF Elegant warm border */
     --input: 35 15% 88%;
-    --ring: 217 100% 50%;
+    --ring: 205 100% 20%;
     --radius: 1rem;
   }
 }
@@ -50,7 +50,7 @@
   }
 
   .blue-gradient-text {
-    background: linear-gradient(135deg, #0047BA 0%, #0066FF 60%, #0088CC 100%);
+    background: linear-gradient(135deg, #002642 0%, #003B66 60%, #00538C 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }

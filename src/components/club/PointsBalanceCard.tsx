@@ -57,24 +57,21 @@ export const PointsBalanceCard: React.FC<PointsBalanceCardProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="w-full rounded-3xl p-5 bg-gradient-to-br from-[#12141C] via-[#1A1D28] to-[#0D0E15] border border-gold/30 shadow-glow-gold relative overflow-hidden text-white"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full rounded-3xl p-5 bg-white border border-slate-200/90 shadow-sm relative overflow-hidden text-foreground space-y-3"
     >
-      {/* Background Glow Sphere */}
-      <div className="absolute top-0 right-0 w-36 h-36 bg-gold/10 rounded-full blur-2xl pointer-events-none" />
-
       {/* Header Pill */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gold/20 text-gold flex items-center justify-center border border-gold/30">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
             <Award className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">
-              Programa de Lealtad
+            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block leading-none">
+              Club de Fidelización
             </span>
-            <h3 className="text-xs font-bold text-white tracking-wide">ONLY CLUB</h3>
+            <h3 className="text-xs font-extrabold text-foreground tracking-wide mt-1">ONLY CLUB</h3>
           </div>
         </div>
 
@@ -84,44 +81,44 @@ export const PointsBalanceCard: React.FC<PointsBalanceCardProps> = ({
       </div>
 
       {/* Main Points Display */}
-      <div className="my-3">
+      <div className="my-2 p-3.5 rounded-2xl bg-amber-50/50 border border-amber-100">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-black tracking-tight text-gold font-mono">
+          <span className="text-3xl font-black tracking-tight text-amber-800 font-mono">
             {points.toLocaleString()}
           </span>
-          <span className="text-sm font-bold text-white/80">Puntos Only</span>
+          <span className="text-sm font-bold text-amber-900">Puntos Only</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Equivalente a <strong className="text-white font-mono">{copValue}</strong> en bonos de descuento.
+        <p className="text-xs text-amber-900/80 mt-0.5">
+          Equivalente a <strong className="text-amber-950 font-mono">{copValue}</strong> en bonos de descuento.
         </p>
       </div>
 
       {/* Tier Progress Bar */}
-      <div className="space-y-1.5 my-4">
+      <div className="space-y-1.5 pt-1">
         <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
           <span>Progreso a Nivel {nextTier}</span>
-          <span className="font-mono text-white">{points} / {nextThreshold} pts</span>
+          <span className="font-mono text-foreground font-semibold">{points} / {nextThreshold} pts</span>
         </div>
-        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="h-full bg-gradient-to-r from-gold via-amber-400 to-yellow-200 rounded-full shadow-glow-gold"
+            className="h-full bg-amber-600 rounded-full"
           />
         </div>
       </div>
 
       {/* Quick Perks Footer */}
-      <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs text-slate-300">
-          <Gift className="w-3.5 h-3.5 text-gold" />
+      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+          <Gift className="w-3.5 h-3.5 text-amber-600" />
           <span>Regalo sorpresa en tu cumpleaños 🎂</span>
         </div>
 
         <button
           onClick={onOpenRewards}
-          className="flex items-center gap-1 text-xs text-gold font-bold hover:underline"
+          className="flex items-center gap-1 text-xs text-brand-blue font-bold hover:underline"
         >
           <span>Canjear</span>
           <ChevronRight className="w-3.5 h-3.5" />
