@@ -147,8 +147,8 @@ export async function getOrdersByPhone(phone: string): Promise<CustomerOrder[]> 
 
     if (!error && data && data.length > 0) {
       const matched = data.filter((row: any) => {
-        const rowPhones = row.cliente_telefonos || []
-        return rowPhones.some((p: string) => p.includes(phone10))
+        const rowPhones: string[] = row.cliente_telefonos || []
+        return rowPhones.some((p: string) => p.replace(/\D/g, '').includes(phone10))
       })
 
       if (matched.length > 0) {
@@ -156,8 +156,9 @@ export async function getOrdersByPhone(phone: string): Promise<CustomerOrder[]> 
       }
     }
   } catch (err) {
-    console.warn('[getOrdersByPhone] failed, using sample orders', err)
+    console.warn('[getOrdersByPhone] failed', err)
   }
 
-  return SAMPLE_ORDERS
+  // No hay pedidos reales para este cliente todavía
+  return []
 }

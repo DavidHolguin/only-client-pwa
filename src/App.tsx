@@ -27,7 +27,9 @@ const AppContent: React.FC = () => {
     )
   }
 
-  if (!isAuthenticated) {
+  const isTrackingPath = window.location.pathname.startsWith('/p/') || window.location.pathname.includes('/pedidos/')
+
+  if (!isAuthenticated && !isTrackingPath) {
     return <AuthPage />
   }
 

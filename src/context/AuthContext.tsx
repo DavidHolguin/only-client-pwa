@@ -48,47 +48,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (magicPhone) {
         const cleanPhone = magicPhone.replace(/\D/g, '')
-        const effectiveToken = magicToken || 'demo-jwt-token-2026'
+        const effectiveToken = magicToken || `link-${cleanPhone}`
+
+        // Always create a minimal session from the magic link — no login wall
+        let resolvedProfile: CustomerProfile = {
+          id: `cust-${cleanPhone}`,
+          phone: cleanPhone,
+          full_name: 'Cliente Only Home',
+          avatar_url: '',
+          birthday: '',
+          total_points: 0,
+          tier: 'bronce',
+          lead_temperature: 50,
+          addresses: [],
+          referral_code: `ONLY-${cleanPhone.slice(-4)}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
         
         try {
-          // Query Supabase matching full clean phone or the last 10 digits (handling 57 prefix variations)
+          // Try to enrich with real profile data if available
           const { data: dbProfile } = await supabase
             .from('customer_profiles')
             .select('*')
             .or(`phone.eq.${cleanPhone},phone.ilike.%${cleanPhone.slice(-10)}`)
             .maybeSingle()
 
-          const resolvedProfile: CustomerProfile = {
-            id: dbProfile?.id || `cust-${cleanPhone}`,
-            phone: cleanPhone,
-            full_name: dbProfile?.full_name || 'Cliente Only Home',
-            avatar_url: dbProfile?.avatar_url || '',
-            birthday: dbProfile?.birthday || '',
-            total_points: dbProfile?.total_points || 0,
-            tier: dbProfile?.tier || 'bronce',
-            lead_temperature: dbProfile?.lead_temperature || 50,
-            addresses: dbProfile?.addresses || [],
-            referral_code: dbProfile?.referral_code || `ONLY-${cleanPhone.slice(-4)}`,
-            created_at: dbProfile?.created_at || new Date().toISOString(),
-            updated_at: dbProfile?.updated_at || new Date().toISOString(),
+          if (dbProfile) {
+            resolvedProfile = {
+              ...resolvedProfile,
+              id: dbProfile.id || resolvedProfile.id,
+              full_name: dbProfile.full_name || resolvedProfile.full_name,
+              avatar_url: dbProfile.avatar_url || '',
+              birthday: dbProfile.birthday || '',
+              total_points: dbProfile.total_points || 0,
+              tier: dbProfile.tier || 'bronce',
+              lead_temperature: dbProfile.lead_temperature || 50,
+              addresses: dbProfile.addresses || [],
+              referral_code: dbProfile.referral_code || resolvedProfile.referral_code,
+              created_at: dbProfile.created_at || resolvedProfile.created_at,
+              updated_at: dbProfile.updated_at || resolvedProfile.updated_at,
+            }
           }
-
-          setCustomer(resolvedProfile)
-          setToken(effectiveToken)
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({ customer: resolvedProfile, token: effectiveToken })
-          )
         } catch (err) {
-          console.warn('Failed to fetch profile from Supabase, loading fallback context', err)
-          const fallbackProfile: CustomerProfile = {
-            ...INITIAL_CUSTOMER,
-            phone: cleanPhone,
-            full_name: 'Cliente Only Home',
-          }
-          setCustomer(fallbackProfile)
-          setToken(effectiveToken)
+          console.warn('[AuthContext] Could not enrich profile from Supabase, using minimal session', err)
         }
+
+        // Always set session from magic link — never show login wall for tracking links
+        setCustomer(resolvedProfile)
+        setToken(effectiveToken)
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ customer: resolvedProfile, token: effectiveToken })
+        )
       }
       setIsLoading(false)
     }
