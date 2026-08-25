@@ -66,32 +66,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: new Date().toISOString(),
         }
         
+        const phone10 = cleanPhone.slice(-10)
         try {
-          // Try to enrich with real profile data if available
-          const { data: dbProfile } = await supabase
-            .from('customer_profiles')
+          // Consultar la tabla 'pedidos' de Supabase con los últimos 10 dígitos del teléfono
+          const { data: dbOrder } = await supabase
+            .from('pedidos')
             .select('*')
-            .or(`phone.eq.${cleanPhone},phone.ilike.%${cleanPhone.slice(-10)}`)
+            .or(`telefono1.ilike.%${phone10}%,telefono2.ilike.%${phone10}%`)
+            .limit(1)
             .maybeSingle()
 
-          if (dbProfile) {
+          if (dbOrder) {
             resolvedProfile = {
               ...resolvedProfile,
-              id: dbProfile.id || resolvedProfile.id,
-              full_name: dbProfile.full_name || resolvedProfile.full_name,
-              avatar_url: dbProfile.avatar_url || '',
-              birthday: dbProfile.birthday || '',
-              total_points: dbProfile.total_points || 0,
-              tier: dbProfile.tier || 'bronce',
-              lead_temperature: dbProfile.lead_temperature || 50,
-              addresses: dbProfile.addresses || [],
-              referral_code: dbProfile.referral_code || resolvedProfile.referral_code,
-              created_at: dbProfile.created_at || resolvedProfile.created_at,
-              updated_at: dbProfile.updated_at || resolvedProfile.updated_at,
+              full_name: dbOrder.cliente || resolvedProfile.full_name,
+              addresses: dbOrder.direccion
+                ? [
+                    {
+                      id: 'addr-1',
+                      alias: 'Casa / Entrega',
+                      formatted_address: dbOrder.direccion,
+                      city: dbOrder.ciudad || 'Armenia',
+                      is_default: true,
+                    },
+                  ]
+                : [],
             }
           }
         } catch (err) {
-          console.warn('[AuthContext] Could not enrich profile from Supabase, using minimal session', err)
+          console.warn('[AuthContext] Could not enrich profile from Supabase pedidos table', err)
         }
 
         // Always set session from magic link — never show login wall for tracking links

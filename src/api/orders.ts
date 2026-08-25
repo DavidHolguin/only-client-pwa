@@ -1,31 +1,81 @@
 import { supabase } from '../lib/supabase'
 import type { CustomerOrder, OrderStatus } from '../types'
-import { SAMPLE_ORDERS } from '../lib/mockData'
 
 /**
- * Normaliza un registro de Supabase (vista customer_order_status o tabla customer_orders)
+ * Normaliza un registro de Supabase (tabla pedidos o customer_orders)
  * al modelo CustomerOrder de la PWA.
  */
-export function normalizeOrder(row: any, items: any[] = []): CustomerOrder {
+export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder {
+  const cleanNum = String(row.numero_pedido || '').trim()
+  const rawStatus = (row.estado || row.cx_status || '').toString().toLowerCase()
+
+  let cx_status: OrderStatus = 'in_production'
+  if (rawStatus.includes('cola') || rawStatus.includes('confirm') || rawStatus.includes('pendiente')) {
+    cx_status = 'pending_confirmation'
+  } else if (rawStatus.includes('planta') || rawStatus.includes('fabricacion') || rawStatus.includes('prod')) {
+    cx_status = 'in_production'
+  } else if (rawStatus.includes('listo')) {
+    cx_status = 'ready_for_dispatch'
+  } else if (rawStatus.includes('programad') || rawStatus.includes('despacho')) {
+    cx_status = 'scheduled_for_dispatch'
+  } else if (rawStatus.includes('ruta') || rawStatus.includes('transit')) {
+    cx_status = 'in_transit'
+  } else if (rawStatus.includes('entregad')) {
+    cx_status = 'delivered'
+  } else if (rawStatus.includes('novedad') || rawStatus.includes('delay')) {
+    cx_status = 'delayed'
+  }
+
   const isDeliveryDay =
-    row.cx_status === 'in_transit' ||
-    row.cx_status === 'scheduled_for_dispatch' ||
+    cx_status === 'in_transit' ||
+    cx_status === 'scheduled_for_dispatch' ||
     (row.fecha_entrega_prom && new Date(row.fecha_entrega_prom).toDateString() === new Date().toDateString())
 
+  // Parse items JSON array
+  let rawItems: any[] = extraItems
+  if (rawItems.length === 0) {
+    if (Array.isArray(row.items)) {
+      rawItems = row.items
+    } else if (typeof row.items === 'string') {
+      try {
+        rawItems = JSON.parse(row.items)
+      } catch (e) {
+        rawItems = []
+      }
+    }
+  }
+
+  const normalizedItems = rawItems.map((it: any, idx: number) => ({
+    id: it.id || `item-${idx}`,
+    sku: it.codigo || it.sku || `SKU-${idx + 1}`,
+    referencia: it.referencia || it.sku || it.descripcion || 'Mueble Only Home',
+    cantidad: Number(it.cantidad || 1),
+    linea_item: it.centro || it.linea_item || 'MADERA',
+    estado_item: it.estado || it.estado_item || 'ok',
+    tipo_pata: it.tipo_pata || 'Madera Roble Natural',
+    image_url:
+      it.image_url ||
+      (idx === 0
+        ? 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500&auto=format&fit=crop&q=80'),
+  }))
+
+  const telefonos = row.cliente_telefonos || [row.telefono1, row.telefono2].filter(Boolean).map((t: any) => String(t).trim())
+
   return {
-    id: row.order_id || row.id || `ord-${row.numero_pedido}`,
-    numero_pedido: String(row.numero_pedido || '77545'),
-    opv: row.opv,
-    tipo_pedido: row.tipo_pedido,
-    tienda: row.tienda || 'ONLY HOME',
-    ruta: row.ruta || 'MEDELLÍN',
-    linea: row.linea || (row.lineas && row.lineas[0]) || 'MUEBLES',
-    cliente_nombre: row.cliente_nombre || 'Cliente Only Home',
+    id: row.id || `ord-${cleanNum}`,
+    numero_pedido: cleanNum,
+    opv: row.opv || undefined,
+    tipo_pedido: row.tipo_pedido || 'Venta Especial',
+    tienda: row.tienda || 'ONLY HOME ARMENIA',
+    ruta: row.ruta || row.ciudad || 'ARMENIA',
+    linea: row.linea || 'MUEBLES',
+    cliente_nombre: row.cliente || row.cliente_nombre || 'Cliente Only Home',
     cliente_documento: row.cliente_documento,
-    cliente_telefonos: row.cliente_telefonos || [],
-    destino: row.destino || 'Medellín',
+    cliente_telefonos: telefonos,
+    destino: row.ciudad || row.destino || 'Armenia',
     direccion: row.direccion || 'Dirección registrada en pedido',
-    asesor: row.asesor || 'Only Asistente Virtual',
+    asesor: row.asesor || 'Asesor Only Home',
     fecha_creacion: row.fecha_creacion,
     fecha_entrega_prom: row.fecha_entrega_prom,
     fecha_entrega_real: row.fecha_entrega_real,
@@ -34,10 +84,14 @@ export function normalizeOrder(row: any, items: any[] = []): CustomerOrder {
     estado_pago: row.estado_pago || 'PAGO 100%',
     fecha_pago: row.fecha_pago,
     documento_pago: row.documento_pago,
-    total_amount: row.total_amount || 3450000,
-    paid_amount: row.paid_amount || 3450000,
-    cx_status: (row.cx_status as OrderStatus) || (isDeliveryDay ? 'in_transit' : 'in_production'),
-    eta_texto: row.eta_texto || (isDeliveryDay ? 'En ruta de entrega hoy. Llega en la franja de la tarde.' : 'Tu pedido está en fabricación en nuestra planta.'),
+    total_amount: row.total_amount || 0,
+    paid_amount: row.paid_amount || 0,
+    cx_status,
+    eta_texto:
+      row.eta_texto ||
+      (isDeliveryDay
+        ? 'En ruta de entrega hoy. Tu pedido llega en la franja del día.'
+        : 'Tu pedido está en proceso de fabricación en planta.'),
     is_confirmed_by_customer: row.is_confirmed_by_customer ?? true,
     invoice_url: row.invoice_url || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     driver: isDeliveryDay
@@ -48,82 +102,56 @@ export function normalizeOrder(row: any, items: any[] = []): CustomerOrder {
           vehicle_model: 'Camión Isuzu Blanco Only Home',
           photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
           rating: 4.95,
-          current_location: {
-            lat: 6.214,
-            lng: -75.571,
-          },
+          current_location: { lat: 6.214, lng: -75.571 },
         }
       : undefined,
-    items: items.length > 0
-      ? items.map((it: any, idx: number) => ({
-          id: it.id || `item-${idx}`,
-          sku: it.sku || `77019284910${idx}`,
-          referencia: it.referencia || it.descripcion || 'Mueble de Diseño Only Home',
-          cantidad: it.cantidad || 1,
-          linea_item: it.linea_item || 'MADERA',
-          estado_item: it.estado_item || 'ok',
-          tipo_pata: it.tipo_pata || 'Madera Roble',
-          image_url:
-            it.image_url ||
-            (idx === 0
-              ? 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&auto=format&fit=crop&q=80'
-              : 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500&auto=format&fit=crop&q=80'),
-        }))
-      : [
-          {
-            id: 'item-default-1',
-            sku: '7701928491023',
-            referencia: 'Mueble de Sala / Comedor Only Home Fabricación Especial',
-            cantidad: 1,
-            linea_item: 'TAPICERIA',
-            estado_item: 'ok',
-            tipo_pata: 'Madera Roble Natural',
-            image_url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&auto=format&fit=crop&q=80',
-          },
-        ],
+    items:
+      normalizedItems.length > 0
+        ? normalizedItems
+        : [
+            {
+              id: 'item-default-1',
+              sku: '7701928491023',
+              referencia: 'Mueble de Sala / Comedor Only Home Fabricación Especial',
+              cantidad: 1,
+              linea_item: 'TAPICERIA',
+              estado_item: 'ok',
+              tipo_pata: 'Madera Roble Natural',
+            },
+          ],
   }
 }
 
 /**
- * Consulta un pedido específico por su número (p.ej. 77545 o OPV)
+ * Consulta un pedido específico por su número (p.ej. 94885 o OPV)
  */
 export async function getOrderByNumber(numeroPedido: string): Promise<CustomerOrder | null> {
   const cleanNumber = numeroPedido.trim().replace(/^#/, '')
+  if (!cleanNumber) return null
 
   try {
-    // 1. Intentar consultar en la vista customer_order_status
-    const { data: orderData, error: orderErr } = await supabase
-      .from('customer_order_status')
+    // 1. Consultar en la tabla 'pedidos'
+    const { data: pData, error: pErr } = await supabase
+      .from('pedidos')
       .select('*')
       .or(`numero_pedido.eq.${cleanNumber},opv.ilike.%${cleanNumber}%`)
       .limit(1)
       .maybeSingle()
 
-    if (!orderErr && orderData) {
-      // Consultar items del pedido
-      const { data: itemsData } = await supabase
-        .from('customer_order_items')
-        .select('*')
-        .eq('order_id', orderData.order_id)
-
-      return normalizeOrder(orderData, itemsData || [])
+    if (!pErr && pData) {
+      return normalizeOrder(pData)
     }
 
-    // 2. Si no encontró en la vista, consultar en customer_orders
-    const { data: rawOrder, error: rawErr } = await supabase
+    // 2. Si no encuentra en 'pedidos', consultar en 'customer_orders'
+    const { data: coData } = await supabase
       .from('customer_orders')
       .select('*')
       .or(`numero_pedido.eq.${cleanNumber},opv.ilike.%${cleanNumber}%`)
       .limit(1)
       .maybeSingle()
 
-    if (!rawErr && rawOrder) {
-      const { data: itemsData } = await supabase
-        .from('customer_order_items')
-        .select('*')
-        .eq('order_id', rawOrder.id)
-
-      return normalizeOrder(rawOrder, itemsData || [])
+    if (coData) {
+      return normalizeOrder(coData)
     }
   } catch (err) {
     console.warn('[getOrderByNumber] Supabase query failed', err)
@@ -138,15 +166,28 @@ export async function getOrderByNumber(numeroPedido: string): Promise<CustomerOr
 export async function getOrdersByPhone(phone: string): Promise<CustomerOrder[]> {
   const digits = phone.replace(/\D/g, '')
   const phone10 = digits.slice(-10)
+  if (!phone10) return []
 
   try {
-    const { data, error } = await supabase
+    // 1. Buscar en la tabla 'pedidos' por los últimos 10 dígitos en telefono1 o telefono2
+    const { data: pData, error: pErr } = await supabase
+      .from('pedidos')
+      .select('*')
+      .or(`telefono1.ilike.%${phone10}%,telefono2.ilike.%${phone10}%`)
+      .order('created_at', { ascending: false })
+
+    if (!pErr && pData && pData.length > 0) {
+      return pData.map((row: any) => normalizeOrder(row))
+    }
+
+    // 2. Fallback a customer_order_status
+    const { data: cosData } = await supabase
       .from('customer_order_status')
       .select('*')
       .order('fecha_creacion', { ascending: false })
 
-    if (!error && data && data.length > 0) {
-      const matched = data.filter((row: any) => {
+    if (cosData && cosData.length > 0) {
+      const matched = cosData.filter((row: any) => {
         const rowPhones: string[] = row.cliente_telefonos || []
         return rowPhones.some((p: string) => p.replace(/\D/g, '').includes(phone10))
       })
@@ -159,6 +200,5 @@ export async function getOrdersByPhone(phone: string): Promise<CustomerOrder[]> 
     console.warn('[getOrdersByPhone] failed', err)
   }
 
-  // No hay pedidos reales para este cliente todavía
   return []
 }
