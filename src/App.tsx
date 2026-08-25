@@ -11,8 +11,10 @@ import { OrdersPage } from './pages/OrdersPage'
 import { ClubPage } from './pages/ClubPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { AuthPage } from './pages/AuthPage'
+import { OrderPortalPage } from './pages/OrderPortalPage'
 
-const AppContent: React.FC = () => {
+// ─── App Shell (autenticado, con Header + BottomNav) ─────────────────────────
+const AppShell: React.FC = () => {
   const { isAuthenticated, isLoading } = useCustomerAuth()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
@@ -27,56 +29,30 @@ const AppContent: React.FC = () => {
     )
   }
 
-  const isTrackingPath = window.location.pathname.startsWith('/p/') || window.location.pathname.includes('/pedidos/')
-
-  if (!isAuthenticated && !isTrackingPath) {
+  if (!isAuthenticated) {
     return <AuthPage />
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col max-w-md mx-auto relative shadow-2xl overflow-x-hidden">
-      {/* Top Header */}
       <HeaderBar onOpenNotifications={() => setNotificationsOpen(true)} />
-
-      {/* Main Page Body */}
       <main className="flex-1 w-full pt-2">
         <Routes>
-          {/* Default active order route */}
           <Route path="/" element={<TrackingPage />} />
-          
-          {/* Deep link direct order routes for WhatsApp Meta template */}
-          <Route path="/p/:numero_pedido" element={<TrackingPage />} />
-          <Route path="/pedidos/:numero_pedido" element={<TrackingPage />} />
-
-          {/* Orders History and invoices */}
           <Route path="/pedidos" element={<OrdersPage />} />
-
-          {/* Gamification Club */}
           <Route path="/club" element={<ClubPage />} />
-
-          {/* Customer Profile & Address Book */}
           <Route path="/perfil" element={<ProfilePage />} />
-
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-
-      {/* Persistent Floating Bottom Dock */}
       <FloatingBottomDock />
 
-      {/* Notifications Drawer Modal */}
       {notificationsOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-md bg-card rounded-t-3xl border-t border-border p-5 space-y-4 shadow-2xl max-h-[75vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground">Notificaciones de tu Pedido</h3>
-              <button
-                onClick={() => setNotificationsOpen(false)}
-                className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold"
-              >
-                Cerrar
-              </button>
+              <button onClick={() => setNotificationsOpen(false)} className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold">Cerrar</button>
             </div>
             <div className="space-y-2.5">
               <div className="p-3 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 flex items-start gap-2.5">
@@ -87,14 +63,6 @@ const AppContent: React.FC = () => {
                   <span className="text-[9px] text-muted-foreground font-mono mt-1 block">Hace 15 min</span>
                 </div>
               </div>
-              <div className="p-3 rounded-2xl bg-gold/10 border border-gold/20 flex items-start gap-2.5">
-                <span className="text-base">✨</span>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">Ganaste 100 Puntos Only Club</h4>
-                  <p className="text-[11px] text-muted-foreground">Bono de bienvenida acreditado a tu cuenta.</p>
-                  <span className="text-[9px] text-muted-foreground font-mono mt-1 block">Ayer</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -103,6 +71,17 @@ const AppContent: React.FC = () => {
   )
 }
 
+// ─── Root Router: separa el portal de pedido del app shell ───────────────────
+const RootRouter: React.FC = () => (
+  <Routes>
+    {/* Portal dedicado de pedido — SIN shell, SIN autenticación requerida */}
+    <Route path="/p/:numero_pedido" element={<OrderPortalPage />} />
+
+    {/* Todo lo demás va al App Shell con autenticación */}
+    <Route path="/*" element={<AppShell />} />
+  </Routes>
+)
+
 export function App() {
   return (
     <BrowserRouter>
@@ -110,7 +89,7 @@ export function App() {
         <AuthProvider>
           <TelemetryProvider>
             <Toaster position="top-center" richColors />
-            <AppContent />
+            <RootRouter />
           </TelemetryProvider>
         </AuthProvider>
       </ThemeProvider>
