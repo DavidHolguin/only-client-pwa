@@ -40,7 +40,19 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
     if (onConfirmOrder) onConfirmOrder()
   }
 
-  const isAnticipo = order.estado_pago?.toLowerCase().includes('anticipo')
+  const getPaymentBadge = () => {
+    if (!order.estado_pago) return null
+    const lower = order.estado_pago.toLowerCase()
+    if (lower.includes('anticipo')) {
+      return { label: order.estado_pago, className: 'bg-amber-50 text-amber-700 border-amber-200' }
+    }
+    if (lower.includes('pago') || lower.includes('100') || lower.includes('total') || lower.includes('cancelado')) {
+      return { label: order.estado_pago, className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+    }
+    return { label: order.estado_pago, className: 'bg-slate-50 text-slate-700 border-slate-200' }
+  }
+
+  const paymentBadge = getPaymentBadge()
 
   return (
     <motion.div
@@ -57,13 +69,11 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
               <span className="text-[10px] uppercase font-black tracking-wider text-brand-blue">
                 Pedido Activo
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                isAnticipo
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              }`}>
-                {order.estado_pago || 'Pago 100%'}
-              </span>
+              {paymentBadge && (
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${paymentBadge.className}`}>
+                  {paymentBadge.label}
+                </span>
+              )}
             </div>
             <h2 className="text-2xl font-black text-foreground tracking-tight mt-1">
               Pedido #{order.numero_pedido}
@@ -85,31 +95,22 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
         {/* Stepper Progress */}
         <StatusStepper status={order.cx_status} />
 
-        {/* Dynamic ETA & Promise Card (Responsive & Clean) */}
-        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-brand-blue text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Clock className="w-3.5 h-3.5" />
-              </div>
-              <h4 className="text-xs font-bold text-slate-800">Fecha Estimada de Entrega</h4>
+        {/* Status Message & Schedule */}
+        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+          <div className="flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-brand-blue text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+              <Clock className="w-3.5 h-3.5" />
             </div>
-            {order.promesa && (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-brand-blue/10 text-brand-blue border border-brand-blue/20 shrink-0">
-                {order.promesa}
-              </span>
-            )}
-          </div>
-          
-          <div className="pl-9 space-y-1">
-            <p className="text-xs text-slate-700 font-semibold leading-relaxed">
-              {order.eta_texto || 'Tu pedido está siendo fabricado con precisión y alta calidad en nuestra planta.'}
-            </p>
-            {order.fecha_entrega_prom && (
-              <p className="text-[11px] font-mono text-muted-foreground">
-                Fecha programada: <strong className="text-foreground">{order.fecha_entrega_prom}</strong>
+            <div className="space-y-1 flex-1 min-w-0">
+              <p className="text-xs text-slate-800 font-semibold leading-relaxed">
+                {order.eta_texto || 'Tu pedido está siendo preparado con precisión y alta calidad en nuestra planta.'}
               </p>
-            )}
+              {order.fecha_entrega_prom && (
+                <p className="text-[11px] font-mono text-muted-foreground">
+                  Fecha de entrega programada: <strong className="text-foreground">{order.fecha_entrega_prom}</strong>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
