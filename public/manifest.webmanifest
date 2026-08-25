@@ -1,24 +1,30 @@
 {
-  "name": "Only Home — Mi Pedido & Only Club",
+  "name": "Only Home — Portal de Clientes & Pedidos",
   "short_name": "Only Home",
-  "description": "Seguimiento en tiempo real de pedidos, facturas digitales y programa de puntos Only Club.",
-  "theme_color": "#090A0F",
-  "background_color": "#090A0F",
+  "description": "Seguimiento en tiempo real de pedidos, facturas digitales y soporte Only Home.",
+  "theme_color": "#FFFFFF",
+  "background_color": "#FAFAF9",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/logoIconoOH.jpg",
+      "sizes": "500x500",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }

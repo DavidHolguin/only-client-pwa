@@ -63,13 +63,11 @@ export const AuthPage: React.FC = () => {
 
       {/* Top Header Logo */}
       <div className="pt-8 flex flex-col items-center text-center space-y-3">
-        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-brand-blue via-brand-darkBlue to-brand-lightBlue p-0.5 shadow-glow-blue">
-          <div className="w-full h-full bg-[#090A0F] rounded-[22px] flex items-center justify-center">
-            <span className="font-extrabold text-2xl tracking-tighter blue-gradient-text">OH</span>
-          </div>
+        <div className="w-16 h-16 rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+          <img src="/logoIconoOH.jpg" alt="Only Home" className="w-full h-full object-cover" />
         </div>
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground uppercase">
             ONLY HOME
           </h1>
           <p className="text-xs text-muted-foreground font-medium mt-0.5">

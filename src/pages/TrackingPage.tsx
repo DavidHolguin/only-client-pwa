@@ -5,7 +5,7 @@ import { Award, Camera, ChevronRight, Loader2, Sparkles, AlertCircle } from 'luc
 import { useCustomerAuth } from '../context/AuthContext'
 import { useTelemetry } from '../context/TelemetryContext'
 import { SAMPLE_ORDERS } from '../lib/mockData'
-import { getOrderByNumber } from '../api/orders'
+import { getOrderByNumber, getOrdersByPhone } from '../api/orders'
 import type { CustomerOrder } from '../types'
 import { OrderHeroCard } from '../components/tracking/OrderHeroCard'
 import { LiveTrackingMap } from '../components/tracking/LiveTrackingMap'
@@ -37,61 +37,107 @@ export const TrackingPage: React.FC = () => {
     let isMounted = true
     setLoading(true)
 
-    const targetNumber = activeNumber || SAMPLE_ORDERS[0].numero_pedido
+    const resolveAndFetchOrder = async () => {
+      // 1. Número específico por URL
+      let targetNumber = activeNumber
 
-    getOrderByNumber(targetNumber).then((fetchedOrder) => {
-      if (isMounted) {
-        setOrder(fetchedOrder)
-        setLoading(false)
-        if (fetchedOrder) {
-          trackEvent('order_tracking_view', { numero_pedido: fetchedOrder.numero_pedido }, fetchedOrder.id)
+      // 2. Si no viene en URL, revisar último pedido consultado en este dispositivo
+      if (!targetNumber) {
+        targetNumber = localStorage.getItem('last_active_order_number') || ''
+      }
+
+      // 3. Si aún no hay número, buscar los pedidos del cliente autenticado
+      if (!targetNumber && customer?.phone) {
+        try {
+          const customerOrders = await getOrdersByPhone(customer.phone)
+          if (customerOrders.length > 0) {
+            targetNumber = customerOrders[0].numero_pedido
+          }
+        } catch (e) {
+          console.warn('Error fetching customer orders in TrackingPage', e)
         }
       }
-    })
+
+      if (targetNumber) {
+        try {
+          const fetched = await getOrderByNumber(targetNumber)
+          if (isMounted) {
+            if (fetched) {
+              setOrder(fetched)
+              localStorage.setItem('last_active_order_number', fetched.numero_pedido)
+              trackEvent('order_tracking_view', { numero_pedido: fetched.numero_pedido }, fetched.id)
+            } else if (customer?.phone) {
+              // Si el número guardado falló, intentar con el primer pedido real del cliente
+              const allOrders = await getOrdersByPhone(customer.phone)
+              if (allOrders.length > 0) {
+                setOrder(allOrders[0])
+                localStorage.setItem('last_active_order_number', allOrders[0].numero_pedido)
+              } else {
+                setOrder(null)
+              }
+            } else {
+              setOrder(null)
+            }
+          }
+        } catch (err) {
+          if (isMounted) setOrder(null)
+        }
+      } else {
+        if (isMounted) setOrder(null)
+      }
+
+      if (isMounted) setLoading(false)
+    }
+
+    resolveAndFetchOrder()
 
     return () => {
       isMounted = false
     }
-  }, [activeNumber])
+  }, [activeNumber, customer?.phone])
 
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 text-brand-blue animate-spin" />
-        <p className="text-xs font-mono text-muted-foreground animate-pulse">
-          Consultando estado de tu pedido...
-        </p>
+        <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-200 shadow-sm animate-pulse">
+          <img src="/logoIconoOH.jpg" alt="Only Home" className="w-full h-full object-cover" />
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-4 h-4 text-brand-blue animate-spin" />
+          <p className="text-xs font-mono text-muted-foreground">Consultando estado de tu pedido...</p>
+        </div>
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground border border-border">
-          <AlertCircle className="w-8 h-8 text-brand-blue" />
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-secondary/70 flex items-center justify-center text-muted-foreground border border-border">
+          <img src="/logoIconoOH.jpg" alt="Only Home" className="w-10 h-10 rounded-xl object-cover" />
         </div>
         <div>
-          <h3 className="text-base font-extrabold text-foreground">Pedido no encontrado</h3>
-          <p className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
-            El pedido #{activeNumber} aún no está registrado en el portal de clientes de Only Home. 
-            Si acabas de realizar tu compra, el sistema puede tardar unos minutos en sincronizarse.
+          <h3 className="text-base font-extrabold text-foreground">No tienes pedidos en curso</h3>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+            Cuando realices una compra en Only Home o abras el enlace de WhatsApp de tu pedido, aquí podrás ver en tiempo real la fabricación y entrega.
           </p>
         </div>
-        <div className="pt-2 w-full max-w-xs space-y-2">
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full py-2.5 rounded-xl bg-brand-blue hover:bg-brand-lightBlue text-white font-bold text-xs shadow-md transition-all active:scale-95"
-          >
-            Volver a Consultar
-          </button>
+        <div className="pt-2 w-full space-y-2">
           <a
-            href="https://wa.me/573152532876"
+            href="https://onlyhome.co"
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs border border-border transition-all text-center"
+            className="block w-full py-3 rounded-2xl bg-brand-blue hover:bg-brand-blue/90 text-white font-bold text-xs shadow-md transition-all active:scale-95 text-center"
           >
-            Contactar Soporte Only
+            Explorar Catálogo Only Home
+          </a>
+          <a
+            href="https://wa.me/573127959474"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full py-3 rounded-2xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs border border-border transition-all text-center"
+          >
+            Hablar con un Asesor
           </a>
         </div>
       </div>

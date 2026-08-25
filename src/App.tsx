@@ -85,7 +85,7 @@ const RootRouter: React.FC = () => (
 export function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
         <AuthProvider>
           <TelemetryProvider>
             <Toaster position="top-center" richColors />

@@ -83,6 +83,9 @@ export const OrderPortalPage: React.FC = () => {
 
     getOrderByNumber(paramNumero).then(async (fetchedOrder) => {
       setOrder(fetchedOrder)
+      if (fetchedOrder) {
+        localStorage.setItem('last_active_order_number', fetchedOrder.numero_pedido)
+      }
       const phoneToQuery = activePhone || fetchedOrder?.cliente_telefonos?.[0] || ""
       if (phoneToQuery) {
         try {
@@ -97,12 +100,12 @@ export const OrderPortalPage: React.FC = () => {
   // Loading state
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
-      <div className="w-14 h-14 rounded-2xl bg-brand-blue/15 border border-brand-blue/30 flex items-center justify-center animate-pulse">
-        <span className="font-extrabold text-brand-blue text-xl tracking-tighter">OH</span>
+      <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-200 shadow-sm animate-pulse">
+        <img src="/logoIconoOH.jpg" alt="Only Home" className="w-full h-full object-cover" />
       </div>
       <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-xs font-mono animate-pulse">Cargando información del pedido...</span>
+        <Loader2 className="w-4 h-4 text-brand-blue animate-spin" />
+        <span className="text-xs font-mono">Cargando información del pedido...</span>
       </div>
     </div>
   )
@@ -110,14 +113,8 @@ export const OrderPortalPage: React.FC = () => {
   // Order not found state
   if (!order) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center max-w-sm mx-auto space-y-6">
-      <div className="absolute top-5 left-5 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-brand-blue/10 border border-brand-blue/30 flex items-center justify-center">
-          <span className="font-extrabold text-brand-blue text-xs tracking-tighter">OH</span>
-        </div>
-        <span className="text-xs font-bold text-muted-foreground">Only Home</span>
-      </div>
-      <div className="w-16 h-16 rounded-2xl bg-secondary border border-border flex items-center justify-center">
-        <PackageCheck className="w-8 h-8 text-muted-foreground" />
+      <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+        <img src="/logoIconoOH.jpg" alt="Only Home" className="w-10 h-10 rounded-xl object-cover" />
       </div>
       <div className="space-y-2">
         <h2 className="text-lg font-extrabold text-foreground">Pedido en preparación</h2>
@@ -126,10 +123,10 @@ export const OrderPortalPage: React.FC = () => {
         </p>
       </div>
       <div className="w-full space-y-2.5 max-w-xs">
-        <button onClick={() => window.location.reload()} className="flex items-center gap-2 w-full justify-center py-3 rounded-2xl bg-brand-blue text-white font-bold text-sm transition-all active:scale-95 shadow-lg shadow-brand-blue/30">
+        <button onClick={() => window.location.reload()} className="flex items-center gap-2 w-full justify-center py-3 rounded-2xl bg-brand-blue hover:bg-brand-blue/90 text-white font-bold text-sm transition-all active:scale-95 shadow-md shadow-brand-blue/20">
           <RefreshCw className="w-4 h-4" />Actualizar ahora
         </button>
-        <a href="https://wa.me/573127959474" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full justify-center py-3 rounded-2xl bg-secondary border border-border text-foreground font-bold text-sm transition-all">
+        <a href="https://wa.me/573127959474" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full justify-center py-3 rounded-2xl bg-white border border-border text-foreground font-bold text-sm transition-all hover:bg-secondary/60">
           <MessageCircle className="w-4 h-4 text-emerald-500" />Contactar Soporte
         </a>
       </div>
@@ -143,11 +140,11 @@ export const OrderPortalPage: React.FC = () => {
     <div className="min-h-screen bg-background text-foreground flex flex-col max-w-md mx-auto relative overflow-x-hidden">
 
       {/* Minimal clean header */}
-      <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur-md border-b border-border/50">
+      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-border/60 shadow-xs">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-brand-blue/10 border border-brand-blue/30 flex items-center justify-center shrink-0">
-              <span className="font-extrabold text-brand-blue text-xs tracking-tighter">OH</span>
+            <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shadow-xs shrink-0">
+              <img src="/logoIconoOH.jpg" alt="Only Home" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
@@ -157,7 +154,7 @@ export const OrderPortalPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border text-xs font-bold ${statusInfo.color}`}>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary/80 border border-border text-xs font-bold ${statusInfo.color}`}>
               <span>{statusInfo.emoji}</span>
               <span>{statusInfo.label}</span>
             </div>
