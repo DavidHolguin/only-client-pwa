@@ -15,6 +15,7 @@ import { RescheduleModal } from "../components/tracking/RescheduleModal"
 import { OrderInvoiceModal } from "../components/orders/OrderInvoiceModal"
 import { PwaInstallPrompt } from "../components/shell/PwaInstallPrompt"
 import { FloatingBottomDock } from "../components/shell/FloatingBottomDock"
+import { ProductImage } from "../components/common/ProductImage"
 
 // ─── Session persistence ────────────────────────────────────────────────────
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -196,11 +197,21 @@ export const OrderPortalPage: React.FC = () => {
             <div className="space-y-2">
               {otherOrders.slice(0, 3).map((o) => {
                 const s = getStatusInfo(o.cx_status)
+                const firstItem = o.items?.[0]
+                const itemImg = o.imagen_url || firstItem?.image_url
                 return (
-                  <Link key={o.id} to={`/p/${o.numero_pedido}?phone=${resolvedPhone}`} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors border border-border/40">
-                    <div>
-                      <p className="text-xs font-bold text-foreground">Pedido #{o.numero_pedido}</p>
-                      <p className={`text-[11px] font-medium ${s.color}`}>{s.emoji} {s.label}</p>
+                  <Link key={o.id} to={`/p/${o.numero_pedido}?phone=${resolvedPhone}`} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors border border-border/40 gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <ProductImage
+                        src={itemImg}
+                        alt={firstItem?.referencia || `Pedido #${o.numero_pedido}`}
+                        containerClassName="w-10 h-10 rounded-xl shrink-0 overflow-hidden border border-border/50 bg-white dark:bg-slate-900 shadow-2xs relative flex items-center justify-center"
+                        iconSize="sm"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">Pedido #{o.numero_pedido}</p>
+                        <p className={`text-[11px] font-medium ${s.color}`}>{s.emoji} {s.label}</p>
+                      </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                   </Link>

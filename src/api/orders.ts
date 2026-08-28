@@ -45,20 +45,28 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
     }
   }
 
-  const normalizedItems = rawItems.map((it: any, idx: number) => ({
-    id: it.id || `item-${idx}`,
-    sku: it.codigo || it.sku || `SKU-${idx + 1}`,
-    referencia: it.referencia || it.sku || it.descripcion || 'Mueble Only Home',
-    cantidad: Number(it.cantidad || 1),
-    linea_item: it.centro || it.linea_item || 'MADERA',
-    estado_item: it.estado || it.estado_item || 'ok',
-    tipo_pata: it.tipo_pata || 'Madera Roble Natural',
-    image_url:
+  const normalizedItems = rawItems.map((it: any, idx: number) => {
+    const mainImg =
+      it.imagen_principal ||
       it.image_url ||
-      (idx === 0
-        ? 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500&auto=format&fit=crop&q=80'),
-  }))
+      (Array.isArray(it.imagenes) && it.imagenes.length > 0 ? it.imagenes[0] : null) ||
+      (idx === 0 ? row.imagen_url : null) ||
+      undefined
+
+    return {
+      id: it.id || `item-${idx}`,
+      sku: it.codigo || it.sku || `SKU-${idx + 1}`,
+      referencia: it.titulo_catalogo || it.referencia || it.sku || it.descripcion || 'Mueble Only Home',
+      cantidad: Number(it.cantidad || 1),
+      linea_item: it.centro || it.linea_item || 'MADERA',
+      estado_item: it.estado || it.estado_item || 'ok',
+      tipo_pata: it.tipo_pata || undefined,
+      image_url: mainImg,
+      imagen_principal: mainImg,
+      imagenes: Array.isArray(it.imagenes) ? it.imagenes : (mainImg ? [mainImg] : []),
+      titulo_catalogo: it.titulo_catalogo,
+    }
+  })
 
   const telefonos = row.cliente_telefonos || [row.telefono1, row.telefono2].filter(Boolean).map((t: any) => String(t).trim())
 
@@ -94,6 +102,7 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
         : 'Tu pedido está en proceso de fabricación en planta.'),
     is_confirmed_by_customer: row.is_confirmed_by_customer ?? true,
     invoice_url: row.invoice_url || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    imagen_url: row.imagen_url || normalizedItems[0]?.image_url,
     driver: isDeliveryDay
       ? {
           name: 'Mauricio Valencia',

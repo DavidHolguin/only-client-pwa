@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { CustomerOrder } from '../../types'
 import { StatusStepper } from './StatusStepper'
+import { ProductImage } from '../common/ProductImage'
 import { triggerRewardConfetti } from '../../lib/confetti'
 import { useTelemetry } from '../../context/TelemetryContext'
 
@@ -213,16 +214,32 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
           <span className="px-2 py-0.5 rounded bg-secondary text-[10px] font-mono font-bold uppercase">{order.linea}</span>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {order.items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 rounded-2xl bg-secondary/35 border border-border/40 hover:bg-secondary/50 transition-colors"
+              className="flex items-center gap-3.5 p-3 rounded-2xl bg-secondary/35 border border-border/40 hover:bg-secondary/50 transition-colors"
             >
+              {/* Product Thumbnail / Fallback */}
+              <ProductImage
+                src={item.image_url}
+                alt={item.referencia}
+                containerClassName="w-16 h-16 rounded-2xl shrink-0 overflow-hidden border border-border/60 bg-white dark:bg-slate-900 shadow-xs relative flex items-center justify-center"
+              />
+
               <div className="flex-1 min-w-0">
-                <h5 className="text-xs font-extrabold text-foreground truncate">{item.referencia}</h5>
-                <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                  <span>Cant: <strong className="text-foreground font-bold">{item.cantidad}</strong></span>
+                <h5 className="text-xs font-extrabold text-foreground leading-snug line-clamp-2">
+                  {item.referencia}
+                </h5>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground/90">
+                    Cant: <strong className="text-brand-blue font-extrabold">{item.cantidad}</strong>
+                  </span>
+                  {item.sku && (
+                    <span className="font-mono text-[10px] text-muted-foreground/80">
+                      • SKU: {item.sku}
+                    </span>
+                  )}
                   {item.tipo_pata && <span>• {item.tipo_pata}</span>}
                 </div>
               </div>

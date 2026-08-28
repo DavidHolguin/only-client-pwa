@@ -7,6 +7,7 @@ import { useCustomerAuth } from '../context/AuthContext'
 import type { CustomerOrder } from '../types'
 import { OrderInvoiceModal } from '../components/orders/OrderInvoiceModal'
 import { ReviewOrderModal } from '../components/club/ReviewOrderModal'
+import { ProductImage } from '../components/common/ProductImage'
 
 export const OrdersPage: React.FC = () => {
   const { customer } = useCustomerAuth()
@@ -144,11 +145,17 @@ export const OrdersPage: React.FC = () => {
               {/* Items Preview */}
               <div className="space-y-2">
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3">
+                  <div key={item.id} className="flex items-center gap-3 p-2 rounded-2xl bg-secondary/30 border border-border/30">
+                    <ProductImage
+                      src={item.image_url}
+                      alt={item.referencia}
+                      containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden border border-border/50 bg-white dark:bg-slate-900 shadow-2xs relative flex items-center justify-center"
+                      iconSize="sm"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-foreground truncate">{item.referencia}</p>
-                      <p className="text-[11px] text-muted-foreground font-mono">
-                        {order.linea || 'MUEBLES'} • Cant: {item.cantidad}
+                      <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                        {order.linea || 'MUEBLES'} • Cant: <strong className="text-foreground">{item.cantidad}</strong>
                       </p>
                     </div>
                   </div>

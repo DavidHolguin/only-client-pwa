@@ -50,6 +50,9 @@ export interface OrderItem {
   proyeccion?: string;
   tipo_pata?: string;
   image_url?: string;
+  imagen_principal?: string;
+  imagenes?: string[];
+  titulo_catalogo?: string;
 }
 
 export interface DriverInfo {
@@ -95,6 +98,7 @@ export interface CustomerOrder {
   driver?: DriverInfo;
   is_confirmed_by_customer?: boolean;
   invoice_url?: string;
+  imagen_url?: string;
 }
 
 export interface PointsLedgerItem {
