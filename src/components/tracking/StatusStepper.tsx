@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, Clock, PackageCheck, Truck, Home } from 'lucide-react'
+import { Check, PackageCheck, CheckCircle2, Truck, Home } from 'lucide-react'
 import type { OrderStatus } from '../../types'
 
 interface StatusStepperProps {
@@ -8,28 +8,26 @@ interface StatusStepperProps {
 }
 
 const STEPS = [
-  { key: 'pending_confirmation', label: 'Confirmado', icon: Clock },
-  { key: 'in_production', label: 'En Producción', icon: PackageCheck },
-  { key: 'ready_for_dispatch', label: 'Listo', icon: PackageCheck },
-  { key: 'in_transit', label: 'En Ruta', icon: Truck },
-  { key: 'delivered', label: 'Entregado', icon: Home },
+  { key: 'in_production', label: 'Confirmado y en Producción', shortLabel: 'En Producción', icon: PackageCheck },
+  { key: 'ready_for_dispatch', label: 'Listo', shortLabel: 'Listo', icon: CheckCircle2 },
+  { key: 'in_transit', label: 'En Ruta', shortLabel: 'En Ruta', icon: Truck },
+  { key: 'delivered', label: 'Entregado', shortLabel: 'Entregado', icon: Home },
 ]
 
 function getStepIndex(status: OrderStatus): number {
   switch (status) {
-    case 'pending_confirmation':
-      return 0
     case 'in_production':
-      return 1
+      return 0
     case 'ready_for_dispatch':
-      return 2
-    case 'scheduled_for_dispatch':
-    case 'in_transit':
-      return 3
-    case 'delivered':
-      return 4
-    default:
       return 1
+    case 'in_transit':
+      return 2
+    case 'delivered':
+      return 3
+    case 'delayed':
+      return 0
+    default:
+      return 0
   }
 }
 
@@ -37,8 +35,8 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
   const currentIndex = getStepIndex(status)
   const currentStep = STEPS[currentIndex]
 
-  // Para 5 pasos, el centro del primer círculo está en 10% y el último en 90% (rango de 80%)
-  const fillPercentage = (currentIndex / (STEPS.length - 1)) * 80
+  // Para 4 pasos, el centro del primer círculo está en 12.5% y el último en 87.5% (rango de 75%)
+  const fillPercentage = (currentIndex / (STEPS.length - 1)) * 75
 
   return (
     <div className={`w-full py-3 ${className}`}>
@@ -48,17 +46,17 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
           Progreso de tu pedido
         </span>
         <span className="text-[10px] font-extrabold text-brand-blue px-2.5 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20">
-          Fase {currentIndex + 1} de 5: {currentStep?.label}
+          Fase {currentIndex + 1} de 4: {currentStep?.label}
         </span>
       </div>
 
       <div className="relative flex items-center justify-between w-full">
-        {/* Background Line Connector: Conecta del centro del 1er paso (10%) al último (90%) */}
-        <div className="absolute left-[10%] right-[10%] top-[16px] h-[3px] bg-slate-200 z-0 rounded-full" />
+        {/* Background Line Connector: Conecta del centro del 1er paso (12.5%) al último (87.5%) */}
+        <div className="absolute left-[12.5%] right-[12.5%] top-[16px] h-[3px] bg-slate-200 z-0 rounded-full" />
         
         {/* Animated Fill Line */}
         <div
-          className="absolute left-[10%] top-[16px] h-[3px] bg-brand-blue transition-all duration-500 z-0 rounded-full"
+          className="absolute left-[12.5%] top-[16px] h-[3px] bg-brand-blue transition-all duration-500 z-0 rounded-full"
           style={{ width: `${fillPercentage}%` }}
         />
 

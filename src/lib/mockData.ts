@@ -64,7 +64,6 @@ export const SAMPLE_ORDERS: CustomerOrder[] = [
     cx_status: 'in_transit',
     eta_texto: 'Tu pedido está en ruta hoy. Llega entre 2:00 PM y 4:30 PM.',
     is_confirmed_by_customer: true,
-    invoice_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     driver: {
       name: 'Mauricio Valencia',
       phone: '+573004829102',
@@ -123,7 +122,6 @@ export const SAMPLE_ORDERS: CustomerOrder[] = [
     cx_status: 'delivered',
     eta_texto: 'Entregado con éxito el 30 de junio de 2026',
     is_confirmed_by_customer: true,
-    invoice_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     items: [
       {
         id: 'item-3',

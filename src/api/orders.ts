@@ -2,34 +2,77 @@ import { supabase } from '../lib/supabase'
 import type { CustomerOrder, OrderStatus } from '../types'
 
 /**
+ * Determina si un pedido permite modificar la dirección de entrega.
+ * La opción NO estará disponible cuando el pedido esté en:
+ * RESERVADO, FACTURADO, PROG. CARGUE (o PRO CARGUE), LIBERADO o DEVUELTO,
+ * así como en etapas avanzadas (EN RUTA o ENTREGADO).
+ */
+export function canEditDeliveryAddress(order: CustomerOrder): boolean {
+  const raw = (order.raw_status || order.cx_status || '').toString().toUpperCase().trim()
+  const restrictedKeywords = [
+    'RESERVAD',
+    'FACTURAD',
+    'CARGUE',     // cubre 'PROG. CARGUE', 'PROG CARGUE', 'PRO CARGUE'
+    'LIBERAD',
+    'DEVUELT',
+    'RUTA',
+    'TRANSIT',
+    'ENTREGAD',
+    'DELIVERED'
+  ]
+  return !restrictedKeywords.some(kw => raw.includes(kw))
+}
+
+/**
  * Normaliza un registro de Supabase (tabla pedidos o customer_orders)
  * al modelo CustomerOrder de la PWA.
  */
 export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder {
   const cleanNum = String(row.numero_pedido || '').trim()
-  const rawStatus = (row.estado || row.cx_status || '').toString().toLowerCase()
+  const originalStatus = String(row.estado || row.cx_status || row.estado_pedido || '').trim()
+  const upperStatus = originalStatus.toUpperCase()
 
   let cx_status: OrderStatus = 'in_production'
-  if (rawStatus.includes('cola') || rawStatus.includes('confirm') || rawStatus.includes('pendiente')) {
-    cx_status = 'pending_confirmation'
-  } else if (rawStatus.includes('planta') || rawStatus.includes('fabricacion') || rawStatus.includes('prod')) {
-    cx_status = 'in_production'
-  } else if (rawStatus.includes('listo')) {
-    cx_status = 'ready_for_dispatch'
-  } else if (rawStatus.includes('programad') || rawStatus.includes('despacho')) {
-    cx_status = 'scheduled_for_dispatch'
-  } else if (rawStatus.includes('ruta') || rawStatus.includes('transit')) {
+
+  // 1. Estados desde PWA Conductor o etapas de despacho final
+  if (
+    upperStatus.includes('RUTA') ||
+    upperStatus.includes('TRANSIT') ||
+    upperStatus.includes('EN CAMINO') ||
+    upperStatus === 'APPROACHING' ||
+    upperStatus === 'AT_DOOR'
+  ) {
     cx_status = 'in_transit'
-  } else if (rawStatus.includes('entregad')) {
+  } else if (
+    upperStatus.includes('ENTREGAD') ||
+    upperStatus.includes('DELIVERED') ||
+    upperStatus === 'FINALIZADO'
+  ) {
     cx_status = 'delivered'
-  } else if (rawStatus.includes('novedad') || rawStatus.includes('delay')) {
+  }
+  // 2. Estado LISTO: FACTURADO, PROG. CARGUE (y variantes), LIBERADO, LISTO
+  else if (
+    upperStatus.includes('FACTURAD') ||
+    upperStatus.includes('CARGUE') ||
+    upperStatus.includes('LISTO') ||
+    upperStatus.includes('LIBERAD')
+  ) {
+    cx_status = 'ready_for_dispatch'
+  }
+  // 3. Novedad / Devuelto
+  else if (
+    upperStatus.includes('DEVUELT') ||
+    upperStatus.includes('NOVEDAD') ||
+    upperStatus.includes('DELAY')
+  ) {
     cx_status = 'delayed'
   }
+  // 4. Estado inicial: CONFIRMADO Y EN PRODUCCIÓN (EN COLA, EN PLANTA, RESERVADO)
+  else {
+    cx_status = 'in_production'
+  }
 
-  const isDeliveryDay =
-    cx_status === 'in_transit' ||
-    cx_status === 'scheduled_for_dispatch' ||
-    (row.fecha_entrega_prom && new Date(row.fecha_entrega_prom).toDateString() === new Date().toDateString())
+  const isDeliveryDay = cx_status === 'in_transit'
 
   // Parse items JSON array
   let rawItems: any[] = extraItems
@@ -95,13 +138,14 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
     total_amount: row.total_amount || 0,
     paid_amount: row.paid_amount || 0,
     cx_status,
+    raw_status: originalStatus,
     eta_texto:
       row.eta_texto ||
       (isDeliveryDay
         ? 'En ruta de entrega hoy. Tu pedido llega en la franja del día.'
         : 'Tu pedido está en proceso de fabricación en planta.'),
     is_confirmed_by_customer: row.is_confirmed_by_customer ?? true,
-    invoice_url: row.invoice_url || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    invoice_url: row.invoice_url || undefined,
     imagen_url: row.imagen_url || normalizedItems[0]?.image_url,
     driver: isDeliveryDay
       ? {

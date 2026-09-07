@@ -1,18 +1,14 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import {
-  Package,
-  Calendar,
   MapPin,
   CheckCircle2,
-  FileText,
-  Clock,
   Sparkles,
   User,
-  ShieldCheck,
   Building
 } from 'lucide-react'
 import type { CustomerOrder } from '../../types'
+import { canEditDeliveryAddress } from '../../api/orders'
 import { StatusStepper } from './StatusStepper'
 import { ProductImage } from '../common/ProductImage'
 import { triggerRewardConfetti } from '../../lib/confetti'
@@ -21,19 +17,16 @@ import { useTelemetry } from '../../context/TelemetryContext'
 interface OrderHeroCardProps {
   order: CustomerOrder
   onOpenAddressModal?: () => void
-  onOpenRescheduleModal?: () => void
-  onOpenInvoiceModal?: () => void
   onConfirmOrder?: () => void
 }
 
 export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
   order,
   onOpenAddressModal,
-  onOpenRescheduleModal,
-  onOpenInvoiceModal,
   onConfirmOrder,
 }) => {
   const { trackEvent } = useTelemetry()
+  const canChangeAddress = canEditDeliveryAddress(order)
 
   const handleConfirmClick = () => {
     triggerRewardConfetti()
@@ -80,40 +73,10 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
               Pedido #{order.numero_pedido}
             </h2>
           </div>
-
-          <button
-            onClick={() => {
-              trackEvent('invoice_download', { order_id: order.numero_pedido }, order.id)
-              onOpenInvoiceModal?.()
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/80 hover:bg-secondary text-xs font-bold text-foreground border border-border/80 transition-colors shrink-0"
-          >
-            <FileText className="w-3.5 h-3.5 text-brand-blue" />
-            <span>Factura</span>
-          </button>
         </div>
 
         {/* Stepper Progress */}
         <StatusStepper status={order.cx_status} />
-
-        {/* Status Message & Schedule */}
-        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-brand-blue text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <div className="space-y-1 flex-1 min-w-0">
-              <p className="text-xs text-slate-800 font-semibold leading-relaxed">
-                {order.eta_texto || 'Tu pedido está siendo preparado con precisión y alta calidad en nuestra planta.'}
-              </p>
-              {order.fecha_entrega_prom && (
-                <p className="text-[11px] font-mono text-muted-foreground">
-                  Fecha de entrega programada: <strong className="text-foreground">{order.fecha_entrega_prom}</strong>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Real Customer Information & Delivery Details Card */}
@@ -149,15 +112,17 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                 <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 uppercase">{order.destino}</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
-                onOpenAddressModal?.()
-              }}
-              className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold hover:underline shrink-0 mt-1"
-            >
-              Cambiar
-            </button>
+            {canChangeAddress ? (
+              <button
+                onClick={() => {
+                  trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
+                  onOpenAddressModal?.()
+                }}
+                className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold hover:underline shrink-0 mt-1"
+              >
+                Cambiar
+              </button>
+            ) : null}
           </div>
 
           {/* Store & Advisor */}
@@ -173,20 +138,12 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons Grid */}
-        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/60">
-          <button
-            onClick={onOpenRescheduleModal}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs border border-border transition-all active:scale-95"
-          >
-            <Calendar className="w-3.5 h-3.5 text-brand-blue" />
-            <span>Reprogramar</span>
-          </button>
-
+        {/* Action Buttons */}
+        <div className="pt-3 border-t border-border/60">
           <button
             onClick={handleConfirmClick}
             disabled={order.is_confirmed_by_customer}
-            className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 ${
+            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-black text-xs shadow-md transition-all active:scale-98 ${
               order.is_confirmed_by_customer
                 ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
                 : 'bg-brand-blue hover:bg-brand-lightBlue text-white shadow-glow-blue'
@@ -194,12 +151,12 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
           >
             {order.is_confirmed_by_customer ? (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Confirmado ✓</span>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Pedido Confirmado ✓</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5 text-gold" />
+                <Sparkles className="w-4 h-4 text-gold" />
                 <span>Confirmar Pedido</span>
               </>
             )}

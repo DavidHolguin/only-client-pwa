@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Package, FileText, CheckCircle2, Truck, Clock, ChevronRight, Star, Loader2 } from 'lucide-react'
+import { Package, CheckCircle2, Truck, Clock, ChevronRight, Star, Loader2 } from 'lucide-react'
 import { getOrdersByPhone } from '../api/orders'
 import { useCustomerAuth } from '../context/AuthContext'
 import type { CustomerOrder } from '../types'
-import { OrderInvoiceModal } from '../components/orders/OrderInvoiceModal'
 import { ReviewOrderModal } from '../components/club/ReviewOrderModal'
 import { ProductImage } from '../components/common/ProductImage'
 
@@ -15,7 +14,6 @@ export const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'delivered'>('all')
-  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<CustomerOrder | null>(null)
   const [reviewOrderTarget, setReviewOrderTarget] = useState<CustomerOrder | null>(null)
 
   useEffect(() => {
@@ -49,11 +47,10 @@ export const OrdersPage: React.FC = () => {
       case 'in_transit':
         return { label: 'En Ruta 🚚', className: 'bg-blue-50 text-blue-700 border-blue-200' }
       case 'ready_for_dispatch':
-        return { label: 'Listo Despacho 📦', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
+        return { label: 'Listo 📦', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
       case 'in_production':
-        return { label: 'En Fabricación 🔨', className: 'bg-amber-50 text-amber-700 border-amber-200' }
       default:
-        return { label: 'En Proceso ⏳', className: 'bg-slate-50 text-slate-700 border-slate-200' }
+        return { label: 'Confirmado y en Producción 🔨', className: 'bg-amber-50 text-amber-700 border-amber-200' }
     }
   }
 
@@ -67,10 +64,10 @@ export const OrdersPage: React.FC = () => {
       {/* Header Title */}
       <div className="pt-2">
         <h2 className="text-xl font-extrabold tracking-tight text-foreground">
-          Mis Pedidos & Facturas
+          Mis Pedidos
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Consulta el historial de tus compras y descarga tus facturas DIAN.
+          Consulta el historial y estado de entrega de tus compras en tiempo real.
         </p>
       </div>
 
@@ -111,7 +108,7 @@ export const OrdersPage: React.FC = () => {
           </div>
           <h3 className="text-sm font-bold text-foreground">No tienes pedidos en esta sección</h3>
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            Todos tus pedidos registrados en Only Home aparecerán aquí con su estado y factura.
+            Todos tus pedidos registrados en Only Home aparecerán aquí con su estado en tiempo real.
           </p>
         </div>
       )}
@@ -180,14 +177,6 @@ export const OrdersPage: React.FC = () => {
                   )}
 
                   <button
-                    onClick={() => setSelectedInvoiceOrder(order)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border transition-colors"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-brand-blue" />
-                    <span>Factura</span>
-                  </button>
-
-                  <button
                     onClick={() => handleOrderClick(order.numero_pedido)}
                     className="p-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
                     aria-label="Ver seguimiento"
@@ -200,15 +189,6 @@ export const OrdersPage: React.FC = () => {
           )
         })}
       </div>
-
-      {/* Invoice Modal */}
-      {selectedInvoiceOrder && (
-        <OrderInvoiceModal
-          isOpen={!!selectedInvoiceOrder}
-          onClose={() => setSelectedInvoiceOrder(null)}
-          order={selectedInvoiceOrder}
-        />
-      )}
 
       {/* Review Modal */}
       {reviewOrderTarget && (

@@ -31,14 +31,11 @@ export interface CustomerProfile {
 }
 
 export type OrderStatus =
-  | 'pending_confirmation'
   | 'in_production'
   | 'ready_for_dispatch'
-  | 'scheduled_for_dispatch'
   | 'in_transit'
   | 'delivered'
-  | 'delayed'
-  | 'pickup_at_store';
+  | 'delayed';
 
 export interface OrderItem {
   id: string;
@@ -97,6 +94,7 @@ export interface CustomerOrder {
   items: OrderItem[];
   driver?: DriverInfo;
   is_confirmed_by_customer?: boolean;
+  raw_status?: string;
   invoice_url?: string;
   imagen_url?: string;
 }

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react"
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Loader2, AlertCircle, ChevronRight, Download,
-  ShieldCheck, ExternalLink, MessageCircle, RefreshCw, PackageCheck, UserCheck, LayoutGrid,
+  Loader2, ChevronRight,
+  MessageCircle, RefreshCw,
 } from "lucide-react"
 import { getOrderByNumber, getOrdersByPhone } from "../api/orders"
 import type { CustomerOrder } from "../types"
@@ -11,8 +11,6 @@ import { useCustomerAuth } from "../context/AuthContext"
 import { OrderHeroCard } from "../components/tracking/OrderHeroCard"
 import { LiveTrackingMap } from "../components/tracking/LiveTrackingMap"
 import { AddressChangeModal } from "../components/tracking/AddressChangeModal"
-import { RescheduleModal } from "../components/tracking/RescheduleModal"
-import { OrderInvoiceModal } from "../components/orders/OrderInvoiceModal"
 import { PwaInstallPrompt } from "../components/shell/PwaInstallPrompt"
 import { FloatingBottomDock } from "../components/shell/FloatingBottomDock"
 import { ProductImage } from "../components/common/ProductImage"
@@ -41,14 +39,12 @@ function loadPortalSession(pedido: string): PortalSession | null {
 
 function getStatusInfo(status: string) {
   switch (status) {
-    case "pending_confirmation": return { label: "Pendiente", color: "text-amber-500", emoji: "⏳" }
-    case "in_production": return { label: "En Fabricación", color: "text-blue-500", emoji: "🔨" }
-    case "ready_for_dispatch": return { label: "Listo para Despacho", color: "text-emerald-500", emoji: "📦" }
-    case "scheduled_for_dispatch": return { label: "Despacho Programado", color: "text-indigo-500", emoji: "📋" }
+    case "in_production": return { label: "Confirmado y en Producción", color: "text-amber-500", emoji: "🔨" }
+    case "ready_for_dispatch": return { label: "Listo", color: "text-emerald-500", emoji: "📦" }
     case "in_transit": return { label: "En Ruta", color: "text-brand-blue", emoji: "🚚" }
     case "delivered": return { label: "Entregado", color: "text-emerald-500", emoji: "✅" }
     case "delayed": return { label: "Con Novedad", color: "text-red-500", emoji: "⚠️" }
-    default: return { label: "En Proceso", color: "text-blue-500", emoji: "🔄" }
+    default: return { label: "Confirmado y en Producción", color: "text-amber-500", emoji: "🔨" }
   }
 }
 
@@ -65,8 +61,6 @@ export const OrderPortalPage: React.FC = () => {
   const [resolvedPhone, setResolvedPhone] = useState("")
   const [loading, setLoading] = useState(true)
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
 
   useEffect(() => {
     if (!paramNumero) { setLoading(false); return }
@@ -135,7 +129,7 @@ export const OrderPortalPage: React.FC = () => {
   )
 
   const statusInfo = getStatusInfo(order.cx_status)
-  const isDeliveryDay = order.cx_status === "in_transit" || order.cx_status === "scheduled_for_dispatch"
+  const isDeliveryDay = order.cx_status === "in_transit"
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col max-w-md mx-auto relative overflow-x-hidden">
@@ -181,8 +175,6 @@ export const OrderPortalPage: React.FC = () => {
         <OrderHeroCard
           order={order}
           onOpenAddressModal={() => setIsAddressModalOpen(true)}
-          onOpenRescheduleModal={() => setIsRescheduleModalOpen(true)}
-          onOpenInvoiceModal={() => setIsInvoiceModalOpen(true)}
         />
 
         {/* Other orders from same customer */}
@@ -221,21 +213,6 @@ export const OrderPortalPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Help + Invoice actions */}
-        <div className="p-4 rounded-3xl bg-card border border-border/60 space-y-3">
-          <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Servicio al cliente</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <a href="https://wa.me/573127959474" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 transition-all active:scale-95">
-              <MessageCircle className="w-5 h-5 text-emerald-500" />
-              <span className="text-[10px] font-bold text-emerald-500 text-center">Chatear con Asesor</span>
-            </a>
-            <button onClick={() => setIsInvoiceModalOpen(true)} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-brand-blue/10 hover:bg-brand-blue/20 border border-brand-blue/25 transition-all active:scale-95">
-              <Download className="w-5 h-5 text-brand-blue dark:text-brand-lightBlue" />
-              <span className="text-[10px] font-bold text-brand-blue dark:text-brand-lightBlue text-center">Descargar Factura</span>
-            </button>
-          </div>
-        </div>
-
         <PwaInstallPrompt />
       </main>
 
@@ -249,21 +226,6 @@ export const OrderPortalPage: React.FC = () => {
           onClose={() => setIsAddressModalOpen(false)}
           currentAddress={order.direccion || ""}
           onSaveAddress={() => setIsAddressModalOpen(false)}
-        />
-      )}
-      {isRescheduleModalOpen && (
-        <RescheduleModal
-          isOpen={isRescheduleModalOpen}
-          onClose={() => setIsRescheduleModalOpen(false)}
-          currentDate={order.fecha_entrega_prom || undefined}
-          onSaveDate={() => setIsRescheduleModalOpen(false)}
-        />
-      )}
-      {isInvoiceModalOpen && (
-        <OrderInvoiceModal
-          order={order}
-          isOpen={isInvoiceModalOpen}
-          onClose={() => setIsInvoiceModalOpen(false)}
         />
       )}
     </div>

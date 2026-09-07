@@ -10,8 +10,6 @@ import type { CustomerOrder } from '../types'
 import { OrderHeroCard } from '../components/tracking/OrderHeroCard'
 import { LiveTrackingMap } from '../components/tracking/LiveTrackingMap'
 import { AddressChangeModal } from '../components/tracking/AddressChangeModal'
-import { RescheduleModal } from '../components/tracking/RescheduleModal'
-import { OrderInvoiceModal } from '../components/orders/OrderInvoiceModal'
 import { UgcPhotoUploaderModal } from '../components/club/UgcPhotoUploaderModal'
 import { PwaInstallPrompt } from '../components/shell/PwaInstallPrompt'
 
@@ -29,8 +27,6 @@ export const TrackingPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
-  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
   const [isUgcModalOpen, setIsUgcModalOpen] = useState(false)
 
   useEffect(() => {
@@ -144,22 +140,10 @@ export const TrackingPage: React.FC = () => {
     )
   }
 
-  const isDeliveryDay = order.cx_status === 'in_transit' || order.cx_status === 'scheduled_for_dispatch'
+  const isDeliveryDay = order.cx_status === 'in_transit'
 
   const handleSaveAddress = (newAddr: string) => {
     setOrder((prev) => (prev ? { ...prev, direccion: newAddr } : null))
-  }
-
-  const handleSaveDate = (newDate: string, slot: string) => {
-    setOrder((prev) =>
-      prev
-        ? {
-            ...prev,
-            fecha_entrega_prom: newDate,
-            eta_texto: `Reprogramado para el ${newDate} (${slot === 'morning' ? 'Mañana' : 'Tarde'})`,
-          }
-        : null
-    )
   }
 
   const handleConfirmOrder = () => {
@@ -191,8 +175,6 @@ export const TrackingPage: React.FC = () => {
         <OrderHeroCard
           order={order}
           onOpenAddressModal={() => setIsAddressModalOpen(true)}
-          onOpenRescheduleModal={() => setIsRescheduleModalOpen(true)}
-          onOpenInvoiceModal={() => setIsInvoiceModalOpen(true)}
           onConfirmOrder={handleConfirmOrder}
         />
       </div>
@@ -262,19 +244,6 @@ export const TrackingPage: React.FC = () => {
         onClose={() => setIsAddressModalOpen(false)}
         currentAddress={order.direccion || ''}
         onSaveAddress={handleSaveAddress}
-      />
-
-      <RescheduleModal
-        isOpen={isRescheduleModalOpen}
-        onClose={() => setIsRescheduleModalOpen(false)}
-        currentDate={order.fecha_entrega_prom}
-        onSaveDate={handleSaveDate}
-      />
-
-      <OrderInvoiceModal
-        isOpen={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        order={order}
       />
 
       <UgcPhotoUploaderModal
