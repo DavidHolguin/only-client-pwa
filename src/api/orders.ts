@@ -24,6 +24,23 @@ export function canEditDeliveryAddress(order: CustomerOrder): boolean {
 }
 
 /**
+ * Calcula si han transcurrido al menos `days` días desde una fecha dada.
+ */
+function isDaysPassed(dateStr?: string | null, days = 2): boolean {
+  if (!dateStr) return true
+  try {
+    const created = new Date(dateStr)
+    if (isNaN(created.getTime())) return true
+    const now = new Date()
+    const diffMs = now.getTime() - created.getTime()
+    const diffDays = diffMs / (1000 * 60 * 60 * 24)
+    return diffDays >= days
+  } catch {
+    return true
+  }
+}
+
+/**
  * Normaliza un registro de Supabase (tabla pedidos o customer_orders)
  * al modelo CustomerOrder de la PWA.
  */
@@ -32,7 +49,7 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
   const originalStatus = String(row.estado || row.cx_status || row.estado_pedido || '').trim()
   const upperStatus = originalStatus.toUpperCase()
 
-  let cx_status: OrderStatus = 'in_production'
+  let cx_status: OrderStatus = 'confirmed'
 
   // 1. Estados desde PWA Conductor o etapas de despacho final
   if (
@@ -67,9 +84,15 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
   ) {
     cx_status = 'delayed'
   }
-  // 4. Estado inicial: CONFIRMADO Y EN PRODUCCIÓN (EN COLA, EN PLANTA, RESERVADO)
+  // 4. Estados iniciales (Confirmado vs En Producción):
+  // Se ingresa a Confirmado recién creado y dos días después pasa a En Producción
   else {
-    cx_status = 'in_production'
+    const hasPassed2Days = isDaysPassed(row.fecha_creacion || row.created_at, 2)
+    if (upperStatus.includes('PLANTA') || upperStatus.includes('PRODUCCION') || upperStatus.includes('RESERVAD') || hasPassed2Days) {
+      cx_status = 'in_production'
+    } else {
+      cx_status = 'confirmed'
+    }
   }
 
   const isDeliveryDay = cx_status === 'in_transit'

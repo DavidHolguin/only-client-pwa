@@ -18,7 +18,6 @@ export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
 }) => {
   const { customer } = useCustomerAuth()
   const [addressInput, setAddressInput] = useState(currentAddress)
-  const [notesInput, setNotesInput] = useState('')
   const [isLocating, setIsLocating] = useState(false)
 
   if (!isOpen) return null
@@ -52,7 +51,7 @@ export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
       toast.error('Por favor ingresa una dirección válida')
       return
     }
-    onSaveAddress(addressInput.trim(), notesInput.trim())
+    onSaveAddress(addressInput.trim())
     toast.success('¡Dirección de entrega actualizada exitosamente!')
     onClose()
   }
@@ -98,24 +97,11 @@ export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
               Dirección Completa
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={addressInput}
               onChange={(e) => setAddressInput(e.target.value)}
               placeholder="Ej: Carrera 43A #1-50, Apto 902, Torre 1"
               className="w-full px-3 py-2 rounded-xl bg-background border border-input text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand-blue resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-              Indicaciones de Entrega (Opcional)
-            </label>
-            <input
-              type="text"
-              value={notesInput}
-              onChange={(e) => setNotesInput(e.target.value)}
-              placeholder="Ej: Dejar en portería / Hay ascensor de carga"
-              className="w-full px-3 py-2 rounded-xl bg-background border border-input text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
 

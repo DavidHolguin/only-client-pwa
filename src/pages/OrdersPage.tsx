@@ -49,8 +49,10 @@ export const OrdersPage: React.FC = () => {
       case 'ready_for_dispatch':
         return { label: 'Listo 📦', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
       case 'in_production':
+        return { label: 'En Producción 🔨', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+      case 'confirmed':
       default:
-        return { label: 'Confirmado y en Producción 🔨', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+        return { label: 'Confirmado ⏱️', className: 'bg-slate-50 text-slate-700 border-slate-200' }
     }
   }
 

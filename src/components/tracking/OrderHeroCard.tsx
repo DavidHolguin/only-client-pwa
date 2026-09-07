@@ -5,7 +5,8 @@ import {
   CheckCircle2,
   Sparkles,
   User,
-  Building
+  Building,
+  ShieldAlert
 } from 'lucide-react'
 import type { CustomerOrder } from '../../types'
 import { canEditDeliveryAddress } from '../../api/orders'
@@ -78,6 +79,23 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
         {/* Stepper Progress */}
         <StatusStepper status={order.cx_status} />
       </div>
+
+      {/* Sesión de Políticas de Entrega cuando el pedido está En Ruta */}
+      {order.cx_status === 'in_transit' && (
+        <div className="w-full rounded-3xl bg-amber-500/10 border border-amber-500/30 p-5 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">
+              Información Importante de Entrega
+            </h4>
+          </div>
+          <p className="text-xs text-amber-950 leading-relaxed text-justify">
+            Para garantizar una entrega exitosa, es indispensable contar con la disponibilidad de una persona durante todo el día programado para la recepción de su mercancía; no manejamos horarios exactos, aunque podrá realizar el seguimiento en tiempo real una vez el pedido esté en ruta. Asimismo, por políticas de seguridad, el personal no realiza entregas por encima de un cuarto piso, ni está autorizado para manipular productos mediante poleas, lazos, ventanas o balcones. En caso de inmuebles a partir del segundo piso sin ascensor de carga, accesos con escaleras en espiral o muy estrechas, o zonas de difícil tránsito para nuestros camiones (como veredas o barrios de difícil acceso), la entrega se efectuará en el punto más cercano de fácil acceso, quedando a partir de ese momento bajo la total responsabilidad del cliente.
+          </p>
+        </div>
+      )}
 
       {/* Real Customer Information & Delivery Details Card */}
       <div className="w-full rounded-3xl glass-card bg-card border border-border/80 dark:border-white/10 p-5 shadow-lg space-y-3.5">

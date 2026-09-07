@@ -39,12 +39,13 @@ function loadPortalSession(pedido: string): PortalSession | null {
 
 function getStatusInfo(status: string) {
   switch (status) {
-    case "in_production": return { label: "Confirmado y en Producción", color: "text-amber-500", emoji: "🔨" }
+    case "confirmed": return { label: "Confirmado", color: "text-blue-500", emoji: "⏱️" }
+    case "in_production": return { label: "En Producción", color: "text-amber-500", emoji: "🔨" }
     case "ready_for_dispatch": return { label: "Listo", color: "text-emerald-500", emoji: "📦" }
     case "in_transit": return { label: "En Ruta", color: "text-brand-blue", emoji: "🚚" }
     case "delivered": return { label: "Entregado", color: "text-emerald-500", emoji: "✅" }
     case "delayed": return { label: "Con Novedad", color: "text-red-500", emoji: "⚠️" }
-    default: return { label: "Confirmado y en Producción", color: "text-amber-500", emoji: "🔨" }
+    default: return { label: "Confirmado", color: "text-blue-500", emoji: "⏱️" }
   }
 }
 

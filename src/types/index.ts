@@ -31,6 +31,7 @@ export interface CustomerProfile {
 }
 
 export type OrderStatus =
+  | 'confirmed'
   | 'in_production'
   | 'ready_for_dispatch'
   | 'in_transit'
