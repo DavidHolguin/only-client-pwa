@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, MapPin, Navigation, Check, Loader2 } from 'lucide-react'
+import { X, MapPin, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCustomerAuth } from '../../context/AuthContext'
 
@@ -7,7 +7,7 @@ interface AddressChangeModalProps {
   isOpen: boolean
   onClose: () => void
   currentAddress: string
-  onSaveAddress: (newAddress: string, notes?: string) => void
+  onSaveAddress: (newAddress: string) => void
 }
 
 export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
@@ -18,32 +18,8 @@ export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
 }) => {
   const { customer } = useCustomerAuth()
   const [addressInput, setAddressInput] = useState(currentAddress)
-  const [isLocating, setIsLocating] = useState(false)
 
   if (!isOpen) return null
-
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Tu navegador no soporta geolocalización')
-      return
-    }
-
-    setIsLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false)
-        const lat = pos.coords.latitude.toFixed(4)
-        const lng = pos.coords.longitude.toFixed(4)
-        setAddressInput(`Ubicación GPS: ${lat}, ${lng} (Medellín, Antioquia)`)
-        toast.success('Ubicación GPS detectada con precisión 📍')
-      },
-      (err) => {
-        setIsLocating(false)
-        toast.error('No se pudo acceder a tu ubicación. Por favor escribe tu dirección.')
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,21 +50,6 @@ export const AddressChangeModal: React.FC<AddressChangeModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
-
-        {/* GPS Quick Button */}
-        <button
-          type="button"
-          onClick={handleUseCurrentLocation}
-          disabled={isLocating}
-          className="w-full py-2.5 px-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold flex items-center justify-center gap-2 border border-border transition-colors"
-        >
-          {isLocating ? (
-            <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
-          ) : (
-            <Navigation className="w-4 h-4 text-brand-blue" />
-          )}
-          <span>{isLocating ? 'Detectando GPS...' : 'Usar mi ubicación GPS actual'}</span>
-        </button>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">

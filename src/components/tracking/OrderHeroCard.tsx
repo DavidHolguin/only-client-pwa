@@ -2,8 +2,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import {
   MapPin,
-  CheckCircle2,
-  Sparkles,
   User,
   Building,
   ShieldAlert
@@ -12,7 +10,6 @@ import type { CustomerOrder } from '../../types'
 import { canEditDeliveryAddress } from '../../api/orders'
 import { StatusStepper } from './StatusStepper'
 import { ProductImage } from '../common/ProductImage'
-import { triggerRewardConfetti } from '../../lib/confetti'
 import { useTelemetry } from '../../context/TelemetryContext'
 
 interface OrderHeroCardProps {
@@ -24,16 +21,9 @@ interface OrderHeroCardProps {
 export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
   order,
   onOpenAddressModal,
-  onConfirmOrder,
 }) => {
   const { trackEvent } = useTelemetry()
   const canChangeAddress = canEditDeliveryAddress(order)
-
-  const handleConfirmClick = () => {
-    triggerRewardConfetti()
-    trackEvent('delivery_confirmed', { order_id: order.numero_pedido }, order.id)
-    if (onConfirmOrder) onConfirmOrder()
-  }
 
   const getPaymentBadge = () => {
     if (!order.estado_pago) return null
@@ -154,31 +144,6 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
               <p className="text-[10px] text-muted-foreground mt-0.5">Asesor: <strong className="text-foreground/80">{order.asesor || 'Asistente Only'}</strong></p>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-3 border-t border-border/60">
-          <button
-            onClick={handleConfirmClick}
-            disabled={order.is_confirmed_by_customer}
-            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-black text-xs shadow-md transition-all active:scale-98 ${
-              order.is_confirmed_by_customer
-                ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                : 'bg-brand-blue hover:bg-brand-lightBlue text-white shadow-glow-blue'
-            }`}
-          >
-            {order.is_confirmed_by_customer ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Pedido Confirmado ✓</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-gold" />
-                <span>Confirmar Pedido</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
