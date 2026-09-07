@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, PackageCheck, CheckCircle2, Truck, Home } from 'lucide-react'
+import { Check, PackageCheck, FileCheck, Truck, Home } from 'lucide-react'
 import type { OrderStatus } from '../../types'
 
 interface StatusStepperProps {
@@ -8,7 +8,7 @@ interface StatusStepperProps {
 }
 
 const STEPS = [
-  { key: 'confirmed', label: 'Confirmado', shortLabel: 'Confirmado', icon: CheckCircle2 },
+  { key: 'confirmed', label: 'Confirmado', shortLabel: 'Confirmado', icon: FileCheck },
   { key: 'in_production', label: 'En Producción', shortLabel: 'En Producción', icon: PackageCheck },
   { key: 'ready_for_dispatch', label: 'Listo', shortLabel: 'Listo', icon: Check },
   { key: 'in_transit', label: 'En Ruta', shortLabel: 'En Ruta', icon: Truck },
@@ -77,14 +77,14 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
                     isCompleted
                       ? 'bg-brand-blue border-2 border-brand-blue text-white shadow-xs'
                       : isCurrent
-                      ? 'bg-white border-2 border-brand-blue text-brand-blue ring-4 ring-brand-blue/15 scale-110 shadow-sm'
+                      ? 'bg-brand-blue border-2 border-brand-blue text-white ring-4 ring-brand-blue/20 scale-110 shadow-sm'
                       : 'bg-white border-2 border-slate-200 text-slate-400'
                   }`}
                 >
                   {isCompleted ? (
                     <Check className="w-4 h-4 stroke-[3]" />
                   ) : (
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
                   )}
                 </div>
               </div>
