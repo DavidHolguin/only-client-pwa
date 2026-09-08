@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import type { CustomerOrder } from '../../types'
 import { canEditDeliveryAddress } from '../../api/orders'
+import { getConfirmedLocationLocal } from '../../lib/googleMaps'
 import { StatusStepper } from './StatusStepper'
 import { ProductImage } from '../common/ProductImage'
 import { useTelemetry } from '../../context/TelemetryContext'
@@ -24,6 +25,7 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
 }) => {
   const { trackEvent } = useTelemetry()
   const canChangeAddress = canEditDeliveryAddress(order)
+  const isLocationConfirmed = Boolean(getConfirmedLocationLocal(order.numero_pedido))
 
   const getPaymentBadge = () => {
     if (!order.estado_pago) return null
@@ -115,7 +117,18 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                 <MapPin className="w-3.5 h-3.5 text-brand-blue" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Dirección de despacho</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Dirección de despacho</p>
+                  {isLocationConfirmed ? (
+                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 text-[9px] font-black border border-emerald-500/20">
+                      Ubicación Confirmada ✓
+                    </span>
+                  ) : canChangeAddress ? (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-700 text-[9px] font-black border border-amber-500/20">
+                      Pendiente Confirmar
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-xs font-extrabold text-foreground leading-snug">{order.direccion}</p>
                 <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 uppercase">{order.destino}</p>
               </div>
@@ -126,9 +139,13 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                   trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
                   onOpenAddressModal?.()
                 }}
-                className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold hover:underline shrink-0 mt-1"
+                className={`text-xs font-bold shrink-0 mt-1 transition-all ${
+                  isLocationConfirmed
+                    ? 'text-brand-blue hover:underline'
+                    : 'px-2.5 py-1 rounded-xl bg-brand-blue text-white shadow-xs hover:bg-brand-lightBlue text-[11px]'
+                }`}
               >
-                Cambiar
+                {isLocationConfirmed ? 'Modificar' : 'Confirmar'}
               </button>
             ) : null}
           </div>

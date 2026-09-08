@@ -278,3 +278,40 @@ export async function getOrdersByPhone(phone: string): Promise<CustomerOrder[]> 
 
   return []
 }
+
+/**
+ * Actualiza la dirección y datos de geolocalización de un pedido.
+ * Actualiza en Supabase tabla 'pedidos' y 'customer_orders'.
+ */
+export async function updateOrderDeliveryAddress(
+  numeroPedido: string,
+  fullAddress: string,
+  locationData?: { lat: number; lng: number; complement?: string; reference?: string }
+): Promise<boolean> {
+  const cleanNumber = numeroPedido.trim().replace(/^#/, '')
+  if (!cleanNumber || !fullAddress) return false
+
+  try {
+    const updatePayload: Record<string, any> = {
+      direccion: fullAddress,
+      updated_at: new Date().toISOString(),
+    }
+
+    // Actualizar en pedidos
+    await supabase
+      .from('pedidos')
+      .update(updatePayload)
+      .eq('numero_pedido', cleanNumber)
+
+    // Actualizar en customer_orders si existe
+    await supabase
+      .from('customer_orders')
+      .update(updatePayload)
+      .eq('numero_pedido', cleanNumber)
+
+    return true
+  } catch (e) {
+    console.warn('[updateOrderDeliveryAddress] error updating supabase', e)
+    return false
+  }
+}

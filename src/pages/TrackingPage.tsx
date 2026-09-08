@@ -5,11 +5,12 @@ import { Award, Camera, ChevronRight, Loader2, Sparkles, AlertCircle } from 'luc
 import { useCustomerAuth } from '../context/AuthContext'
 import { useTelemetry } from '../context/TelemetryContext'
 import { SAMPLE_ORDERS } from '../lib/mockData'
-import { getOrderByNumber, getOrdersByPhone } from '../api/orders'
+import { getOrderByNumber, getOrdersByPhone, canEditDeliveryAddress } from '../api/orders'
+import { getConfirmedLocationLocal } from '../lib/googleMaps'
 import type { CustomerOrder } from '../types'
 import { OrderHeroCard } from '../components/tracking/OrderHeroCard'
 import { LiveTrackingMap } from '../components/tracking/LiveTrackingMap'
-import { AddressChangeModal } from '../components/tracking/AddressChangeModal'
+import { LocationConfirmModal } from '../components/tracking/LocationConfirmModal'
 import { UgcPhotoUploaderModal } from '../components/club/UgcPhotoUploaderModal'
 import { PwaInstallPrompt } from '../components/shell/PwaInstallPrompt'
 
@@ -26,8 +27,9 @@ export const TrackingPage: React.FC = () => {
   const [order, setOrder] = useState<CustomerOrder | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const [isUgcModalOpen, setIsUgcModalOpen] = useState(false)
+  const [hasPromptedAutoLocation, setHasPromptedAutoLocation] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -62,6 +64,19 @@ export const TrackingPage: React.FC = () => {
               setOrder(fetched)
               localStorage.setItem('last_active_order_number', fetched.numero_pedido)
               trackEvent('order_tracking_view', { numero_pedido: fetched.numero_pedido }, fetched.id)
+
+              // Auto-popup: si el pedido permite confirmar ubicación y aún no fue confirmado
+              if (canEditDeliveryAddress(fetched)) {
+                const isConfirmed = Boolean(getConfirmedLocationLocal(fetched.numero_pedido))
+                const sessionDismissed = sessionStorage.getItem(`dismissed_loc_prompt_${fetched.numero_pedido}`)
+                if (!isConfirmed && !sessionDismissed && !hasPromptedAutoLocation) {
+                  setHasPromptedAutoLocation(true)
+                  // Ligera pausa suave para que cargue la interfaz antes de desplegar
+                  setTimeout(() => {
+                    setIsLocationModalOpen(true)
+                  }, 800)
+                }
+              }
             } else if (customer?.phone) {
               // Si el número guardado falló, intentar con el primer pedido real del cliente
               const allOrders = await getOrdersByPhone(customer.phone)
@@ -174,7 +189,7 @@ export const TrackingPage: React.FC = () => {
       <div className="px-4">
         <OrderHeroCard
           order={order}
-          onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          onOpenAddressModal={() => setIsLocationModalOpen(true)}
           onConfirmOrder={handleConfirmOrder}
         />
       </div>
@@ -239,11 +254,18 @@ export const TrackingPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <AddressChangeModal
-        isOpen={isAddressModalOpen}
-        onClose={() => setIsAddressModalOpen(false)}
+      <LocationConfirmModal
+        isOpen={isLocationModalOpen}
+        onClose={() => {
+          setIsLocationModalOpen(false)
+          sessionStorage.setItem(`dismissed_loc_prompt_${order.numero_pedido}`, 'true')
+        }}
+        orderNumber={order.numero_pedido}
         currentAddress={order.direccion || ''}
-        onSaveAddress={handleSaveAddress}
+        city={order.destino || 'Colombia'}
+        onConfirmedSuccess={(newAddr) => {
+          handleSaveAddress(newAddr)
+        }}
       />
 
       <UgcPhotoUploaderModal
