@@ -125,6 +125,20 @@ export const TrackingPage: React.FC = () => {
     }
   }, [order, loading, hasPromptedAutoLocation])
 
+  const isDeliveryDay = order?.cx_status === 'in_transit'
+
+  // Activar o desactivar modo inmersivo de entrega en el DOM
+  useEffect(() => {
+    if (isDeliveryDay) {
+      document.body.setAttribute('data-delivery-mode', 'true')
+    } else {
+      document.body.removeAttribute('data-delivery-mode')
+    }
+    return () => {
+      document.body.removeAttribute('data-delivery-mode')
+    }
+  }, [isDeliveryDay])
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
@@ -172,20 +186,6 @@ export const TrackingPage: React.FC = () => {
       </div>
     )
   }
-
-  const isDeliveryDay = order.cx_status === 'in_transit'
-
-  // Activar o desactivar modo inmersivo de entrega en el DOM
-  useEffect(() => {
-    if (isDeliveryDay) {
-      document.body.setAttribute('data-delivery-mode', 'true')
-    } else {
-      document.body.removeAttribute('data-delivery-mode')
-    }
-    return () => {
-      document.body.removeAttribute('data-delivery-mode')
-    }
-  }, [isDeliveryDay])
 
   const handleSaveAddress = (newAddr: string) => {
     setOrder((prev) => (prev ? { ...prev, direccion: newAddr } : null))
