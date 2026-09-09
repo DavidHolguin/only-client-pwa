@@ -20,7 +20,24 @@ const NAV_ITEMS: NavItem[] = [
 export const FloatingBottomDock: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const [isInDeliveryMode, setIsInDeliveryMode] = React.useState(false)
   const activeOrderNumber = localStorage.getItem('last_active_order_number')
+
+  React.useEffect(() => {
+    const checkDeliveryMode = () => {
+      const active = document.body.getAttribute('data-delivery-mode') === 'true'
+      setIsInDeliveryMode(active)
+    }
+
+    checkDeliveryMode()
+    const observer = new MutationObserver(checkDeliveryMode)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-delivery-mode'] })
+    return () => observer.disconnect()
+  }, [location.pathname])
+
+  if (isInDeliveryMode) {
+    return null
+  }
 
   const handleNavClick = (path: string) => {
     if (path === '/') {

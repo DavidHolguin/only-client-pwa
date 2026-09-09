@@ -10,6 +10,7 @@ import { getConfirmedLocationLocal } from '../lib/googleMaps'
 import type { CustomerOrder } from '../types'
 import { OrderHeroCard } from '../components/tracking/OrderHeroCard'
 import { LiveTrackingMap } from '../components/tracking/LiveTrackingMap'
+import { LiveDeliveryExperience } from '../components/tracking/LiveDeliveryExperience'
 import { LocationConfirmModal } from '../components/tracking/LocationConfirmModal'
 import { UgcPhotoUploaderModal } from '../components/club/UgcPhotoUploaderModal'
 import { PwaInstallPrompt } from '../components/shell/PwaInstallPrompt'
@@ -174,6 +175,18 @@ export const TrackingPage: React.FC = () => {
 
   const isDeliveryDay = order.cx_status === 'in_transit'
 
+  // Activar o desactivar modo inmersivo de entrega en el DOM
+  useEffect(() => {
+    if (isDeliveryDay) {
+      document.body.setAttribute('data-delivery-mode', 'true')
+    } else {
+      document.body.removeAttribute('data-delivery-mode')
+    }
+    return () => {
+      document.body.removeAttribute('data-delivery-mode')
+    }
+  }, [isDeliveryDay])
+
   const handleSaveAddress = (newAddr: string) => {
     setOrder((prev) => (prev ? { ...prev, direccion: newAddr } : null))
     if (order?.numero_pedido) {
@@ -189,26 +202,15 @@ export const TrackingPage: React.FC = () => {
     setOrder((prev) => (prev ? { ...prev, is_confirmed_by_customer: true } : null))
   }
 
+  // ─── EXPERIENCIA DE ENTREGA INMERSIVA EN RUTA (SIN DOCK INFERIOR) ───
+  if (isDeliveryDay) {
+    return <LiveDeliveryExperience order={order} />
+  }
+
   return (
     <div className="space-y-4 pb-36">
       {/* PWA Install Banner */}
       <PwaInstallPrompt />
-
-      {/* Conditional Live Tracking Map (Only appears on Delivery Day / In Transit) */}
-      {isDeliveryDay && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="px-4"
-        >
-          <LiveTrackingMap
-            orderNumber={order.numero_pedido}
-            driver={order.driver}
-            destinationAddress={order.direccion || 'Medellín'}
-          />
-        </motion.div>
-      )}
 
       {/* Main Order Card */}
       <div className="px-4">
