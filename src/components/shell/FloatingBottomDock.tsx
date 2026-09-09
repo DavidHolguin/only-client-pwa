@@ -35,7 +35,7 @@ export const FloatingBottomDock: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+    <div className="fixed bottom-3 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
       <nav className="pointer-events-auto flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/10 max-w-md w-full backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
           const isTrackingItem = item.path === '/'

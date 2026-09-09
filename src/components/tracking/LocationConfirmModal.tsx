@@ -44,19 +44,24 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const autocompleteInputRef = useRef<HTMLInputElement>(null)
 
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const markerRef = useRef<google.maps.Marker | null>(null)
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null)
+
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null)
-  const [markerInstance, setMarkerInstance] = useState<google.maps.Marker | null>(null)
-  const [geocoderInstance, setGeocoderInstance] = useState<google.maps.Geocoder | null>(null)
 
-  // Modo expandido (Pantalla completa / mapa inmersivo en móvil)
-  const [isExpanded, setIsExpanded] = useState(false)
+  // Modo expandir únicamente el contenedor del mapa dentro del modal
+  const [isMapExpanded, setIsMapExpanded] = useState(false)
 
-  // Estado de movimiento del mapa para animación de pin estilo Rappi
+  // Estado de movimiento del mapa
   const [isMapMoving, setIsMapMoving] = useState(false)
 
-  // Coordenadas seleccionadas (Default Colombia / Medellín / Bogotá)
+  // Coordenadas seleccionadas
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
+    lat: 6.2442,
+    lng: -75.5812,
+  })
+  const coordsRef = useRef<{ lat: number; lng: number }>({
     lat: 6.2442,
     lng: -75.5812,
   })
@@ -77,7 +82,9 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     if (isOpen && orderNumber) {
       const saved = getConfirmedLocationLocal(orderNumber)
       if (saved) {
-        setCoords({ lat: saved.lat, lng: saved.lng })
+        const savedCoords = { lat: saved.lat, lng: saved.lng }
+        setCoords(savedCoords)
+        coordsRef.current = savedCoords
         setStreetAddress(saved.address)
         setAptComplement(saved.complement || '')
         setReferenceNotes(saved.reference || '')
@@ -87,33 +94,36 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     }
   }, [isOpen, orderNumber, currentAddress])
 
-  // Función para geocodificación inversa segura
-  const executeReverseGeocode = useCallback(
-    (lat: number, lng: number, geocoder: google.maps.Geocoder) => {
-      if (reverseGeocodeTimeoutRef.current) {
-        clearTimeout(reverseGeocodeTimeoutRef.current)
-      }
+  // Función para geocodificación inversa segura con debounce
+  const executeReverseGeocode = useCallback((lat: number, lng: number) => {
+    if (reverseGeocodeTimeoutRef.current) {
+      clearTimeout(reverseGeocodeTimeoutRef.current)
+    }
 
-      reverseGeocodeTimeoutRef.current = setTimeout(() => {
-        setIsReverseGeocoding(true)
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          setIsReverseGeocoding(false)
-          if (status === 'OK' && results && results[0]) {
-            const formatted = results[0].formatted_address
-            setStreetAddress(formatted)
-            if (autocompleteInputRef.current) {
-              autocompleteInputRef.current.value = formatted
-            }
+    reverseGeocodeTimeoutRef.current = setTimeout(() => {
+      if (!geocoderRef.current) return
+      setIsReverseGeocoding(true)
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+        setIsReverseGeocoding(false)
+        if (status === 'OK' && results && results[0]) {
+          const formatted = results[0].formatted_address
+          setStreetAddress(formatted)
+          if (autocompleteInputRef.current) {
+            autocompleteInputRef.current.value = formatted
           }
-        })
-      }, 350)
-    },
-    []
-  )
+        }
+      })
+    }, 400)
+  }, [])
 
-  // Inicializar Google Maps API
+  // Inicializar Google Maps API UNA SOLA VEZ al abrir el modal
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      setMapLoaded(false)
+      mapRef.current = null
+      markerRef.current = null
+      return
+    }
 
     let isMounted = true
 
@@ -122,9 +132,9 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
         if (!isMounted || !mapContainerRef.current) return
 
         const geocoder = new Geocoder()
-        setGeocoderInstance(geocoder)
+        geocoderRef.current = geocoder
 
-        const initialCenter = coords
+        const initialCenter = coordsRef.current
         const map = new Map(mapContainerRef.current, {
           center: initialCenter,
           zoom: 16,
@@ -142,7 +152,6 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           ],
         })
 
-        // Marker draggable estilo pin de entrega
         const marker = new Marker({
           position: initialCenter,
           map,
@@ -151,17 +160,22 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           title: 'Punto de entrega Only Home',
         })
 
+        mapRef.current = map
+        markerRef.current = marker
+
         // Sincronizar arrastre manual del marker
         marker.addListener('dragend', (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return
           const newLat = e.latLng.lat()
           const newLng = e.latLng.lng()
-          setCoords({ lat: newLat, lng: newLng })
-          map.panTo({ lat: newLat, lng: newLng })
-          executeReverseGeocode(newLat, newLng, geocoder)
+          const newCoords = { lat: newLat, lng: newLng }
+          setCoords(newCoords)
+          coordsRef.current = newCoords
+          map.panTo(newCoords)
+          executeReverseGeocode(newLat, newLng)
         })
 
-        // Detección de movimiento del mapa para animar pin estilo Rappi
+        // Detección de movimiento del mapa
         map.addListener('dragstart', () => {
           setIsMapMoving(true)
         })
@@ -176,13 +190,15 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           if (center) {
             const newLat = center.lat()
             const newLng = center.lng()
-            setCoords({ lat: newLat, lng: newLng })
-            marker.setPosition({ lat: newLat, lng: newLng })
-            executeReverseGeocode(newLat, newLng, geocoder)
+            const newCoords = { lat: newLat, lng: newLng }
+            setCoords(newCoords)
+            coordsRef.current = newCoords
+            marker.setPosition(newCoords)
+            executeReverseGeocode(newLat, newLng)
           }
         })
 
-        // Vincular Autocomplete en el input principal
+        // Vincular Autocomplete en el input
         if (autocompleteInputRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, {
             componentRestrictions: { country: 'co' },
@@ -197,21 +213,23 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
             const newLat = place.geometry.location.lat()
             const newLng = place.geometry.location.lng()
+            const newCoords = { lat: newLat, lng: newLng }
             const formatted = place.formatted_address || place.name || ''
 
-            setCoords({ lat: newLat, lng: newLng })
+            setCoords(newCoords)
+            coordsRef.current = newCoords
             setStreetAddress(formatted)
 
-            map.panTo({ lat: newLat, lng: newLng })
+            map.panTo(newCoords)
             map.setZoom(17)
-            marker.setPosition({ lat: newLat, lng: newLng })
+            marker.setPosition(newCoords)
 
-            // Cerrar teclado/dropdown en móviles
+            // Blur input para cerrar teclado en móvil
             autocompleteInputRef.current?.blur()
           })
         }
 
-        // Si hay una dirección inicial y no había coordenadas previas, geocodificar dirección inicial
+        // Si hay una dirección inicial y no había coordenadas guardadas previamente
         if (currentAddress && !getConfirmedLocationLocal(orderNumber)) {
           geocoder.geocode(
             { address: `${currentAddress}, ${city}, Colombia` },
@@ -220,17 +238,17 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                 const loc = results[0].geometry.location
                 const lat = loc.lat()
                 const lng = loc.lng()
-                setCoords({ lat, lng })
-                map.panTo({ lat, lng })
-                marker.setPosition({ lat, lng })
+                const newCoords = { lat, lng }
+                setCoords(newCoords)
+                coordsRef.current = newCoords
+                map.setCenter(newCoords)
+                marker.setPosition(newCoords)
                 setStreetAddress(results[0].formatted_address)
               }
             }
           )
         }
 
-        setMapInstance(map)
-        setMarkerInstance(marker)
         setMapLoaded(true)
       })
       .catch((err) => {
@@ -243,15 +261,17 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     }
   }, [isOpen])
 
-  // Ajustar mapa al alternar modo expandido
+  // Ajustar tamaño del canvas de Google Maps al alternar "Ampliar mapa"
   useEffect(() => {
-    if (mapInstance) {
+    if (mapRef.current) {
       setTimeout(() => {
-        google.maps.event.trigger(mapInstance, 'resize')
-        mapInstance.panTo(coords)
-      }, 200)
+        if (mapRef.current) {
+          google.maps.event.trigger(mapRef.current, 'resize')
+          mapRef.current.panTo(coordsRef.current)
+        }
+      }, 150)
     }
-  }, [isExpanded, coords, mapInstance])
+  }, [isMapExpanded])
 
   if (!isOpen) return null
 
@@ -279,18 +299,18 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
         setIsLocatingGPS(false)
         const newLat = pos.coords.latitude
         const newLng = pos.coords.longitude
-        setCoords({ lat: newLat, lng: newLng })
+        const newCoords = { lat: newLat, lng: newLng }
+        setCoords(newCoords)
+        coordsRef.current = newCoords
 
-        if (mapInstance && markerInstance) {
-          mapInstance.panTo({ lat: newLat, lng: newLng })
-          mapInstance.setZoom(17)
-          markerInstance.setPosition({ lat: newLat, lng: newLng })
+        if (mapRef.current && markerRef.current) {
+          mapRef.current.panTo(newCoords)
+          mapRef.current.setZoom(17)
+          markerRef.current.setPosition(newCoords)
         }
 
-        if (geocoderInstance) {
-          executeReverseGeocode(newLat, newLng, geocoderInstance)
-          toast.success('Ubicación GPS detectada con éxito')
-        }
+        executeReverseGeocode(newLat, newLng)
+        toast.success('Ubicación GPS detectada con éxito')
       },
       (_err) => {
         setIsLocatingGPS(false)
@@ -302,27 +322,27 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
   // Acción: Recentrar en el pin actual
   const handleRecenter = () => {
-    if (mapInstance) {
-      mapInstance.panTo(coords)
-      mapInstance.setZoom(17)
-      toast.info('Mapa recentrado en tu ubicación')
+    if (mapRef.current) {
+      mapRef.current.panTo(coordsRef.current)
+      mapRef.current.setZoom(17)
+      toast.info('Mapa recentrado')
     }
   }
 
   // Acción: Zoom Controls
   const handleZoomIn = () => {
-    if (mapInstance) {
-      mapInstance.setZoom((mapInstance.getZoom() || 16) + 1)
+    if (mapRef.current) {
+      mapRef.current.setZoom((mapRef.current.getZoom() || 16) + 1)
     }
   }
 
   const handleZoomOut = () => {
-    if (mapInstance) {
-      mapInstance.setZoom((mapInstance.getZoom() || 16) - 1)
+    if (mapRef.current) {
+      mapRef.current.setZoom((mapRef.current.getZoom() || 16) - 1)
     }
   }
 
-  // Guardar y Confirmar Ubicación
+  // Guardar y Confirmar Ubicación (Sincroniza Supabase + Google Sheets)
   const handleConfirmLocation = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -344,8 +364,8 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
     const locationData = {
       address: streetAddress.trim(),
-      lat: coords.lat,
-      lng: coords.lng,
+      lat: coordsRef.current.lat,
+      lng: coordsRef.current.lng,
       complement: aptComplement.trim() || undefined,
       reference: referenceNotes.trim() || undefined,
       city,
@@ -355,10 +375,10 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     // 1. Guardar localmente
     saveConfirmedLocationLocal(orderNumber, locationData)
 
-    // 2. Guardar en Supabase
+    // 2. Guardar en Supabase y Sincronizar con Google Sheets
     await updateOrderDeliveryAddress(orderNumber, fullFormattedAddress, {
-      lat: coords.lat,
-      lng: coords.lng,
+      lat: coordsRef.current.lat,
+      lng: coordsRef.current.lng,
       complement: aptComplement.trim(),
       reference: referenceNotes.trim(),
     })
@@ -367,21 +387,15 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     toast.success('¡Ubicación de entrega confirmada con éxito!')
 
     if (onConfirmedSuccess) {
-      onConfirmedSuccess(fullFormattedAddress, coords)
+      onConfirmedSuccess(fullFormattedAddress, coordsRef.current)
     }
 
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div
-        className={`w-full bg-white border border-slate-200/80 shadow-2xl flex flex-col transition-all duration-300 overflow-hidden ${
-          isExpanded
-            ? 'h-full sm:h-[95vh] sm:max-w-4xl sm:rounded-3xl rounded-none'
-            : 'max-w-lg rounded-3xl max-h-[92vh] m-3 sm:m-0'
-        }`}
-      >
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-md rounded-3xl bg-white border border-slate-200/90 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header minimalista y limpio */}
         <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
           <div className="flex items-center gap-2.5">
@@ -389,34 +403,32 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-slate-800 tracking-tight">
                 Confirmar dirección de entrega
               </h3>
               <p className="text-[11px] text-slate-500 font-normal">
-                {isExpanded
-                  ? 'Modo mapa interactivo en pantalla completa'
-                  : 'Busca tu dirección o mueve el mapa'}
+                Busca tu dirección o mueve el mapa
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Botón de Expandir / Minimizar Mapa */}
+            {/* Botón para Ampliar/Reducir SOLO el área del mapa */}
             <button
               type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => setIsMapExpanded(!isMapExpanded)}
               className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
-              title={isExpanded ? 'Contraer vista' : 'Expandir mapa a pantalla completa'}
+              title={isMapExpanded ? 'Reducir mapa' : 'Ampliar área del mapa'}
             >
-              {isExpanded ? (
+              {isMapExpanded ? (
                 <>
                   <Minimize2 className="w-3.5 h-3.5 text-slate-600" />
-                  <span className="hidden sm:inline">Contraer</span>
+                  <span className="text-[11px]">Reducir</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5 text-brand-blue" />
-                  <span className="text-[11px]">Expandir</span>
+                  <span className="text-[11px]">Ampliar</span>
                 </>
               )}
             </button>
@@ -433,13 +445,9 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div
-          className={`flex-1 flex flex-col overflow-y-auto ${
-            isExpanded ? 'p-0' : 'p-4 sm:p-5 space-y-3.5'
-          }`}
-        >
-          {/* Barra de Búsqueda Principal (Siempre accesible) */}
-          <div className={`${isExpanded ? 'p-3 bg-slate-50/90 border-b border-slate-200 z-10' : 'space-y-1'}`}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+          {/* Barra de Búsqueda Principal */}
+          <div className="space-y-1">
             <div className="relative flex items-center">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
 
@@ -452,7 +460,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                   if (e.key === 'Enter') e.preventDefault()
                 }}
                 placeholder="Escribe calle, carrera, avenida o lugar..."
-                className="w-full pl-10 pr-24 py-2.5 rounded-xl bg-slate-50 sm:bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15 transition-all font-medium"
+                className="w-full pl-10 pr-24 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15 transition-all font-medium"
               />
 
               <div className="absolute right-1.5 flex items-center gap-1">
@@ -493,35 +501,33 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
             )}
           </div>
 
-          {/* Contenedor del Mapa Interactivo */}
+          {/* Contenedor del Mapa Interactivo (Con altura expandible) */}
           <div
-            className={`relative w-full overflow-hidden bg-slate-100 ${
-              isExpanded
-                ? 'flex-1 min-h-[300px]'
-                : 'h-60 sm:h-64 rounded-2xl border border-slate-200'
+            className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 transition-all duration-300 ${
+              isMapExpanded ? 'h-[360px] sm:h-[400px]' : 'h-52 sm:h-56'
             }`}
           >
             {/* Mapa de Google */}
             <div ref={mapContainerRef} className="w-full h-full" />
 
             {/* Banner flotante interactivo superior */}
-            <div className="absolute top-3 left-3 right-3 pointer-events-none flex justify-center z-10">
-              <div className="px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1.5 shadow-md">
+            <div className="absolute top-2.5 left-2.5 right-2.5 pointer-events-none flex justify-center z-10">
+              <div className="px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-medium flex items-center gap-1.5 shadow-md">
                 <Navigation className="w-3 h-3 text-sky-400 shrink-0" />
                 <span>{isMapMoving ? 'Moviendo mapa...' : 'Mueve el mapa para fijar el punto exacto'}</span>
               </div>
             </div>
 
             {/* Botones de Control Flotantes en el Mapa */}
-            <div className="absolute right-3 bottom-4 flex flex-col gap-2 z-10">
+            <div className="absolute right-2.5 bottom-2.5 flex flex-col gap-1.5 z-10">
               {/* Botón Recentrar en Pin */}
               <button
                 type="button"
                 onClick={handleRecenter}
-                className="w-9 h-9 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md text-slate-700 flex items-center justify-center hover:bg-white active:scale-95 transition-all"
+                className="w-8 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md text-slate-700 flex items-center justify-center hover:bg-white active:scale-95 transition-all"
                 title="Recentrar en el pin"
               >
-                <RotateCcw className="w-4 h-4 text-slate-700" />
+                <RotateCcw className="w-3.5 h-3.5 text-slate-700" />
               </button>
 
               {/* Botón GPS Flotante */}
@@ -529,13 +535,13 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                 type="button"
                 onClick={handleUseCurrentGPS}
                 disabled={isLocatingGPS}
-                className="w-9 h-9 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md text-slate-700 flex items-center justify-center hover:bg-white active:scale-95 transition-all"
+                className="w-8 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-md text-slate-700 flex items-center justify-center hover:bg-white active:scale-95 transition-all"
                 title="Ir a mi ubicación GPS actual"
               >
                 {isLocatingGPS ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-blue" />
                 ) : (
-                  <Crosshair className="w-4 h-4 text-brand-blue" />
+                  <Crosshair className="w-3.5 h-3.5 text-brand-blue" />
                 )}
               </button>
 
@@ -544,18 +550,18 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                 <button
                   type="button"
                   onClick={handleZoomIn}
-                  className="w-9 h-8 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors border-b border-slate-100"
+                  className="w-8 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors border-b border-slate-100"
                   title="Acercar"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3 h-3" />
                 </button>
                 <button
                   type="button"
                   onClick={handleZoomOut}
-                  className="w-9 h-8 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors"
+                  className="w-8 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors"
                   title="Alejar"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <Minus className="w-3 h-3" />
                 </button>
               </div>
             </div>
@@ -575,8 +581,8 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           </div>
 
           {/* Formulario de Detalles (Apto / Indicaciones) */}
-          <div className={`${isExpanded ? 'p-4 bg-white border-t border-slate-200' : 'space-y-3'}`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[11px] font-semibold text-slate-700 block mb-1">
                   Apto / Casa / Interior (Opcional)
@@ -612,9 +618,9 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
             {/* Dirección Detectada Badge */}
             {streetAddress && (
-              <div className="mt-2.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2">
+              <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 text-brand-blue shrink-0 mt-0.5" />
-                <div className="text-[11px]">
+                <div className="text-[11px] leading-tight">
                   <span className="font-semibold text-slate-700">Punto fijado: </span>
                   <span className="text-slate-600 font-normal">{streetAddress}</span>
                 </div>

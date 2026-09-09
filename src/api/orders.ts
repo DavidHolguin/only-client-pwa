@@ -297,21 +297,70 @@ export async function updateOrderDeliveryAddress(
       updated_at: new Date().toISOString(),
     }
 
-    // Actualizar en pedidos
-    await supabase
-      .from('pedidos')
-      .update(updatePayload)
-      .eq('numero_pedido', cleanNumber)
+    // 1. Actualizar en Supabase (pedidos y customer_orders)
+    await Promise.allSettled([
+      supabase
+        .from('pedidos')
+        .update(updatePayload)
+        .eq('numero_pedido', cleanNumber),
+      supabase
+        .from('customer_orders')
+        .update(updatePayload)
+        .eq('numero_pedido', cleanNumber),
+    ])
 
-    // Actualizar en customer_orders si existe
-    await supabase
-      .from('customer_orders')
-      .update(updatePayload)
-      .eq('numero_pedido', cleanNumber)
+    // 2. Sincronizar inmediatamente con Google Sheets (Hoja PEDIDOS Columna Y DIRECCION) via n8n
+    try {
+      await fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numero_pedido: cleanNumber,
+          changes: {
+            direccion: fullAddress,
+          },
+        }),
+      })
+    } catch (sheetErr) {
+      console.warn('[updateOrderDeliveryAddress] sheet sync webhook warning', sheetErr)
+    }
 
     return true
   } catch (e) {
-    console.warn('[updateOrderDeliveryAddress] error updating supabase', e)
+    console.warn('[updateOrderDeliveryAddress] error updating address', e)
+    return false
+  }
+}
+
+
+/**
+ * Actualiza la fecha de entrega de un pedido.
+ * Utiliza el webhook de n8n para sincronizar con Google Sheets y Supabase.
+ */
+export async function updateOrderDeliveryDate(
+  numeroPedido: string,
+  newDate: string
+): Promise<boolean> {
+  const cleanNumber = numeroPedido.trim().replace(/^#/, '')
+  if (!cleanNumber || !newDate) return false
+
+  try {
+    const res = await fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        numero_pedido: cleanNumber,
+        changes: { fecha_entrega_prom: newDate }
+      })
+    })
+
+    if (!res.ok) {
+      throw new Error('Failed to update via n8n webhook')
+    }
+
+    return true
+  } catch (e) {
+    console.warn('[updateOrderDeliveryDate] error updating via webhook', e)
     return false
   }
 }
