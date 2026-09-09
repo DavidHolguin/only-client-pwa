@@ -6,6 +6,8 @@ import { AuthProvider, useCustomerAuth } from './context/AuthContext'
 import { TelemetryProvider } from './context/TelemetryContext'
 import { HeaderBar } from './components/shell/HeaderBar'
 import { FloatingBottomDock } from './components/shell/FloatingBottomDock'
+import { NotificationsModal } from './components/shell/NotificationsModal'
+import { PwaInstallPrompt } from './components/shell/PwaInstallPrompt'
 import { TrackingPage } from './pages/TrackingPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ClubPage } from './pages/ClubPage'
@@ -45,26 +47,14 @@ const AppShell: React.FC = () => {
       </main>
       <FloatingBottomDock />
 
-      {notificationsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-card rounded-t-3xl border-t border-border p-5 space-y-4 shadow-2xl max-h-[75vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground">Notificaciones de tu Pedido</h3>
-              <button onClick={() => setNotificationsOpen(false)} className="text-xs text-brand-blue dark:text-brand-lightBlue font-bold">Cerrar</button>
-            </div>
-            <div className="space-y-2.5">
-              <div className="p-3 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 flex items-start gap-2.5">
-                <span className="text-base">🚚</span>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">¡Tu pedido está en ruta hoy!</h4>
-                  <p className="text-[11px] text-muted-foreground">El camión llegará entre 2:00 PM y 4:30 PM.</p>
-                  <span className="text-[9px] text-muted-foreground font-mono mt-1 block">Hace 15 min</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Floating PWA Install Prompt */}
+      <PwaInstallPrompt />
+
+      {/* Real Notifications Modal */}
+      <NotificationsModal
+        isOpen={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
     </div>
   )
 }

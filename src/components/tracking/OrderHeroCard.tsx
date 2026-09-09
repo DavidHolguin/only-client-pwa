@@ -144,10 +144,10 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                   trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
                   onOpenAddressModal?.()
                 }}
-                className={`text-xs shrink-0 mt-0.5 transition-all ${
+                className={`text-xs shrink-0 mt-0.5 transition-all px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 ${
                   isLocationConfirmed
-                    ? 'text-brand-blue font-medium hover:underline'
-                    : 'px-3 py-1.5 rounded-xl bg-brand-blue text-white font-medium hover:bg-brand-blue/90 shadow-2xs'
+                    ? 'bg-secondary hover:bg-secondary/80 text-brand-blue border border-border/80 shadow-2xs active:scale-95'
+                    : 'bg-brand-blue text-white hover:bg-brand-blue/90 shadow-2xs active:scale-95'
                 }`}
               >
                 {isLocationConfirmed ? 'Modificar' : 'Confirmar'}
@@ -167,29 +167,6 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                 <p className="text-[10px] text-muted-foreground mt-0.5">Asesor: <strong className="text-foreground/80">{order.asesor || 'Asistente Only'}</strong></p>
               </div>
             </div>
-          </div>
-
-          {/* Delivery Date */}
-          <div className="flex items-start justify-between gap-2 pt-2 border-t border-border/40">
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-brand-blue/10 flex items-center justify-center shrink-0 mt-0.5 border border-brand-blue/20">
-                <span className="text-sm">📅</span>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Promesa de Entrega</p>
-                <p className="text-xs font-bold text-foreground">
-                  {order.fecha_entrega_prom ? new Date(order.fecha_entrega_prom).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir'}
-                </p>
-              </div>
-            </div>
-            {canChangeAddress && onOpenDateModal && (
-              <button
-                onClick={() => onOpenDateModal()}
-                className="text-xs shrink-0 mt-0.5 transition-all px-3 py-1.5 rounded-xl bg-secondary text-foreground font-semibold hover:bg-secondary/80 border border-border"
-              >
-                Modificar
-              </button>
-            )}
           </div>
         </div>
       </div>

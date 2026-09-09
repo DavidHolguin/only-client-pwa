@@ -4,24 +4,49 @@ import type { CustomerOrder, OrderStatus } from '../types'
 
 /**
  * Determina si un pedido permite modificar la dirección de entrega.
- * La opción NO estará disponible cuando el pedido esté en:
- * RESERVADO, FACTURADO, PROG. CARGUE (o PRO CARGUE), LIBERADO o DEVUELTO,
- * así como en etapas avanzadas (EN RUTA o ENTREGADO).
+ * Regla de Negocio Only Home:
+ * SOLO se puede modificar si el pedido está en estado "Confirmado" o "En Producción".
+ * Queda terminantemente BLOQUEADO en:
+ * - LISTO / READY_FOR_DISPATCH
+ * - PROG. CARGUE (o variantes de cargue)
+ * - FACTURADO
+ * - LIBERADO
+ * - RESERVADO
+ * - DEVUELTO / NOVEDAD
+ * - EN RUTA / IN_TRANSIT
+ * - ENTREGADO / DELIVERED
+ *
+ * Mientras esté en Confirmado o En Producción, el cliente puede modificarla
+ * diferentes veces si es necesario.
  */
 export function canEditDeliveryAddress(order: CustomerOrder): boolean {
-  const raw = (order.raw_status || order.cx_status || '').toString().toUpperCase().trim()
+  if (!order) return false
+
+  // 1. Debe estar estrictamente en Confirmado o En Producción
+  if (order.cx_status !== 'confirmed' && order.cx_status !== 'in_production') {
+    return false
+  }
+
+  // 2. Verificar que el estado crudo (hoja de cálculo o ERP Siesa) no contenga ninguno de los estados bloqueados
+  const raw = `${order.raw_status || ''} ${order.cx_status || ''}`.toUpperCase().trim()
   const restrictedKeywords = [
     'RESERVAD',
     'FACTURAD',
-    'CARGUE',     // cubre 'PROG. CARGUE', 'PROG CARGUE', 'PRO CARGUE'
+    'CARGUE',     // cubre 'PROG. CARGUE', 'PROG CARGUE', 'PRO CARGUE', etc.
     'LIBERAD',
     'DEVUELT',
+    'LISTO',
     'RUTA',
     'TRANSIT',
     'ENTREGAD',
     'DELIVERED'
   ]
-  return !restrictedKeywords.some(kw => raw.includes(kw))
+
+  if (restrictedKeywords.some(kw => raw.includes(kw))) {
+    return false
+  }
+
+  return true
 }
 
 /**

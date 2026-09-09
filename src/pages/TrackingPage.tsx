@@ -13,7 +13,6 @@ import { LiveTrackingMap } from '../components/tracking/LiveTrackingMap'
 import { LiveDeliveryExperience } from '../components/tracking/LiveDeliveryExperience'
 import { LocationConfirmModal } from '../components/tracking/LocationConfirmModal'
 import { UgcPhotoUploaderModal } from '../components/club/UgcPhotoUploaderModal'
-import { PwaInstallPrompt } from '../components/shell/PwaInstallPrompt'
 
 export const TrackingPage: React.FC = () => {
   const { numero_pedido: paramNumero } = useParams<{ numero_pedido?: string }>()
@@ -209,9 +208,6 @@ export const TrackingPage: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-36">
-      {/* PWA Install Banner */}
-      <PwaInstallPrompt />
-
       {/* Main Order Card */}
       <div className="px-4">
         <OrderHeroCard

@@ -36,20 +36,16 @@ function getStepIndex(status: OrderStatus): number {
 
 export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className = '' }) => {
   const currentIndex = getStepIndex(status)
-  const currentStep = STEPS[currentIndex]
 
   // Para 5 pasos, el centro del primer círculo está en 10% y el último en 90% (rango de 80%)
   const fillPercentage = (currentIndex / (STEPS.length - 1)) * 80
 
   return (
     <div className={`w-full py-2.5 ${className}`}>
-      {/* Top micro-badge indicator */}
-      <div className="flex justify-between items-center mb-3 px-0.5 gap-2">
-        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase whitespace-nowrap shrink-0">
+      {/* Top indicator title */}
+      <div className="flex justify-between items-center mb-3 px-0.5">
+        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase whitespace-nowrap">
           Progreso de tu pedido
-        </span>
-        <span className="text-[10px] font-extrabold text-brand-blue px-2.5 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20 whitespace-nowrap shrink-0">
-          Fase {currentIndex + 1} de 5: {currentStep?.label}
         </span>
       </div>
 
