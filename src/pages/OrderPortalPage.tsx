@@ -11,6 +11,7 @@ import { useCustomerAuth } from "../context/AuthContext"
 import { OrderHeroCard } from "../components/tracking/OrderHeroCard"
 import { LiveTrackingMap } from "../components/tracking/LiveTrackingMap"
 import { AddressChangeModal } from "../components/tracking/AddressChangeModal"
+import { DateChangeModal } from "../components/tracking/DateChangeModal"
 import { PwaInstallPrompt } from "../components/shell/PwaInstallPrompt"
 import { FloatingBottomDock } from "../components/shell/FloatingBottomDock"
 import { ProductImage } from "../components/common/ProductImage"
@@ -62,6 +63,7 @@ export const OrderPortalPage: React.FC = () => {
   const [resolvedPhone, setResolvedPhone] = useState("")
   const [loading, setLoading] = useState(true)
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false)
 
   useEffect(() => {
     if (!paramNumero) { setLoading(false); return }
@@ -176,6 +178,7 @@ export const OrderPortalPage: React.FC = () => {
         <OrderHeroCard
           order={order}
           onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          onOpenDateModal={() => setIsDateModalOpen(true)}
         />
 
         {/* Other orders from same customer */}
@@ -227,6 +230,18 @@ export const OrderPortalPage: React.FC = () => {
           onClose={() => setIsAddressModalOpen(false)}
           currentAddress={order.direccion || ""}
           onSaveAddress={() => setIsAddressModalOpen(false)}
+        />
+      )}
+
+      {isDateModalOpen && (
+        <DateChangeModal
+          isOpen={isDateModalOpen}
+          onClose={() => setIsDateModalOpen(false)}
+          orderNumber={order.numero_pedido}
+          currentDate={order.fecha_entrega_prom}
+          onSaveDate={(newDate) => {
+            setOrder({ ...order, fecha_entrega_prom: newDate })
+          }}
         />
       )}
     </div>

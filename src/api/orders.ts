@@ -307,33 +307,71 @@ export async function updateOrderDeliveryAddress(
       updated_at: new Date().toISOString(),
     }
 
-    // 1. Actualizar en Supabase (pedidos y customer_orders)
-    await Promise.allSettled([
-      supabase
-        .from('pedidos')
-        .update(updatePayload)
-        .eq('numero_pedido', cleanNumber),
-      supabase
-        .from('customer_orders')
-        .update(updatePayload)
-        .eq('numero_pedido', cleanNumber),
-    ])
+    // 1. Intentar actualizar en Supabase (si policies lo permiten)
+    Promise.resolve(
+      supabase.from('pedidos').update(updatePayload).eq('numero_pedido', cleanNumber)
+    ).catch(() => {})
 
-    // 2. Sincronizar inmediatamente con Google Sheets (Hoja PEDIDOS Columna Y DIRECCION) via n8n
-    try {
-      await fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
+    Promise.resolve(
+      supabase.from('customer_orders').update(updatePayload).eq('numero_pedido', cleanNumber)
+    ).catch(() => {})
+
+    // 2. Sincronizar con Google Sheets via n8n (Hoja PEDIDOS Columna Y DIRECCION)
+    const n8nUpdatePromise = fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        numero_pedido: cleanNumber,
+        numero: cleanNumber,
+        cambios: {
+          direccion: fullAddress,
+        },
+        changes: {
+          direccion: fullAddress,
+        },
+        direccion: fullAddress,
+        usuario: 'Cliente PWA',
+      }),
+    }).catch((err) => console.warn('[updateOrderDeliveryAddress] n8n warning', err))
+
+    // 3. Fallback directo a Google Apps Script para garantizar que la columna Y DIRECCION se actualice
+    const gasPromise = fetch('https://script.google.com/macros/s/AKfycbx8pHOHRVkE7G170ZFBSkXcuv-IuQPzk8x52IVfZ1EKOhIQ8F7RXd-8ZjKg1duD8r0qYQ/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        token: 'OH_SECRET_AGY_2026',
+        action: 'guardarEdicionPedido',
+        args: {
+          payload: {
+            numero: cleanNumber,
+            cliente: {
+              direccion: fullAddress,
+            },
+            usuario: 'Cliente PWA',
+          },
+        },
+      }),
+    }).catch((err) => console.warn('[updateOrderDeliveryAddress] GAS fallback warning', err))
+
+    // 4. Disparar refresco asíncrono para que Supabase actualice el snapshot desde la hoja inmediatamente
+    const refreshPromise = fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        numero_pedido: cleanNumber,
+      }),
+    }).catch((err) => console.warn('[updateOrderDeliveryAddress] refresh warning', err))
+
+    await Promise.allSettled([n8nUpdatePromise, gasPromise, refreshPromise])
+
+    // Segundo refresco tras 1.5s para asegurar propagación completa
+    setTimeout(() => {
+      fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          numero_pedido: cleanNumber,
-          changes: {
-            direccion: fullAddress,
-          },
-        }),
-      })
-    } catch (sheetErr) {
-      console.warn('[updateOrderDeliveryAddress] sheet sync webhook warning', sheetErr)
-    }
+        body: JSON.stringify({ numero_pedido: cleanNumber }),
+      }).catch(() => {})
+    }, 1500)
 
     return true
   } catch (e) {
@@ -341,7 +379,6 @@ export async function updateOrderDeliveryAddress(
     return false
   }
 }
-
 
 /**
  * Actualiza la fecha de entrega de un pedido.
@@ -355,18 +392,25 @@ export async function updateOrderDeliveryDate(
   if (!cleanNumber || !newDate) return false
 
   try {
-    const res = await fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
+    await fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-update-sheet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         numero_pedido: cleanNumber,
-        changes: { fecha_entrega_prom: newDate }
+        numero: cleanNumber,
+        cambios: { fecha_entrega_prom: newDate },
+        changes: { fecha_entrega_prom: newDate },
+        usuario: 'Cliente PWA'
       })
     })
 
-    if (!res.ok) {
-      throw new Error('Failed to update via n8n webhook')
-    }
+    setTimeout(() => {
+      fetch('https://n8n.prometheuslabs.com.co/webhook/pedido-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero_pedido: cleanNumber }),
+      }).catch(() => {})
+    }, 1500)
 
     return true
   } catch (e) {

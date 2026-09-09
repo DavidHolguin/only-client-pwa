@@ -27,7 +27,10 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
 }) => {
   const { trackEvent } = useTelemetry()
   const canChangeAddress = canEditDeliveryAddress(order)
-  const isLocationConfirmed = Boolean(getConfirmedLocationLocal(order.numero_pedido))
+  const isLocationConfirmed = Boolean(
+    getConfirmedLocationLocal(order.numero_pedido) ||
+    (order.direccion && !order.direccion.toLowerCase().includes('por confirmar') && order.direccion.trim().length > 3)
+  )
 
   const getPaymentBadge = () => {
     if (!order.estado_pago) return null

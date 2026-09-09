@@ -106,6 +106,24 @@ export const TrackingPage: React.FC = () => {
     }
   }, [activeNumber, customer?.phone])
 
+  useEffect(() => {
+    if (!order || loading || hasPromptedAutoLocation) return
+    const isConfirmed = Boolean(
+      getConfirmedLocationLocal(order.numero_pedido) ||
+      (order.direccion && !order.direccion.toLowerCase().includes('por confirmar') && order.direccion.trim().length > 3)
+    )
+    const dismissedThisSession = sessionStorage.getItem(`dismissed_loc_prompt_${order.numero_pedido}`)
+    const canEdit = canEditDeliveryAddress(order)
+
+    if (canEdit && !isConfirmed && !dismissedThisSession) {
+      const timer = setTimeout(() => {
+        setIsLocationModalOpen(true)
+        setHasPromptedAutoLocation(true)
+      }, 1200)
+      return () => clearTimeout(timer)
+    }
+  }, [order, loading, hasPromptedAutoLocation])
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
@@ -158,6 +176,13 @@ export const TrackingPage: React.FC = () => {
 
   const handleSaveAddress = (newAddr: string) => {
     setOrder((prev) => (prev ? { ...prev, direccion: newAddr } : null))
+    if (order?.numero_pedido) {
+      const num = order.numero_pedido
+      setTimeout(async () => {
+        const fresh = await getOrderByNumber(num)
+        if (fresh) setOrder(fresh)
+      }, 2500)
+    }
   }
 
   const handleConfirmOrder = () => {
