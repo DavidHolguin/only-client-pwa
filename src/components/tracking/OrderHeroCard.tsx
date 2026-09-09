@@ -118,19 +118,19 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Dirección de despacho</p>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">Dirección de despacho</p>
                   {isLocationConfirmed ? (
-                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 text-[9px] font-black border border-emerald-500/20">
-                      Ubicación Confirmada ✓
+                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
+                      Confirmada ✓
                     </span>
                   ) : canChangeAddress ? (
-                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-700 text-[9px] font-black border border-amber-500/20">
-                      Pendiente Confirmar
+                    <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 text-[10px] font-medium border border-amber-200">
+                      Por confirmar
                     </span>
                   ) : null}
                 </div>
-                <p className="text-xs font-extrabold text-foreground leading-snug">{order.direccion}</p>
-                <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 uppercase">{order.destino}</p>
+                <p className="text-xs font-semibold text-foreground leading-snug">{order.direccion}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{order.destino}</p>
               </div>
             </div>
             {canChangeAddress ? (
@@ -139,10 +139,10 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
                   trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
                   onOpenAddressModal?.()
                 }}
-                className={`text-xs font-bold shrink-0 mt-1 transition-all ${
+                className={`text-xs shrink-0 mt-0.5 transition-all ${
                   isLocationConfirmed
-                    ? 'text-brand-blue hover:underline'
-                    : 'px-2.5 py-1 rounded-xl bg-brand-blue text-white shadow-xs hover:bg-brand-lightBlue text-[11px]'
+                    ? 'text-brand-blue font-medium hover:underline'
+                    : 'px-3 py-1.5 rounded-xl bg-brand-blue text-white font-medium hover:bg-brand-blue/90 shadow-2xs'
                 }`}
               >
                 {isLocationConfirmed ? 'Modificar' : 'Confirmar'}

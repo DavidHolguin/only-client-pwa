@@ -74,18 +74,8 @@ export const TrackingPage: React.FC = () => {
                 numero_pedido: fetched.numero_pedido,
               })
 
-              // Auto-popup: si el pedido permite confirmar ubicación y aún no fue confirmado
-              if (canEditDeliveryAddress(fetched)) {
-                const isConfirmed = Boolean(getConfirmedLocationLocal(fetched.numero_pedido))
-                const sessionDismissed = sessionStorage.getItem(`dismissed_loc_prompt_${fetched.numero_pedido}`)
-                if (!isConfirmed && !sessionDismissed && !hasPromptedAutoLocation) {
-                  setHasPromptedAutoLocation(true)
-                  // Ligera pausa suave para que cargue la interfaz antes de desplegar
-                  setTimeout(() => {
-                    setIsLocationModalOpen(true)
-                  }, 800)
-                }
-              }
+              // Registrar pedido activo
+              trackEvent('order_tracking_view', { numero_pedido: fetched.numero_pedido }, fetched.id)
             } else if (customer?.phone) {
               // Si el número guardado falló, intentar con el primer pedido real del cliente
               const allOrders = await getOrdersByPhone(customer.phone)
