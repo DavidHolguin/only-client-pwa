@@ -203,6 +203,7 @@ export const TrackingPage: React.FC = () => {
           className="px-4"
         >
           <LiveTrackingMap
+            orderNumber={order.numero_pedido}
             driver={order.driver}
             destinationAddress={order.direccion || 'Medellín'}
           />
