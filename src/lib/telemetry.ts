@@ -21,17 +21,19 @@ export interface TelemetryPayload {
 
 export async function sendTelemetrySignal(payload: TelemetryPayload) {
   try {
+    const isTelemetryEnabled = import.meta.env.VITE_ENABLE_TELEMETRY === 'true'
+    if (!isTelemetryEnabled) return
+
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://rqeoxruodotrgpmipivj.supabase.co'
     const endpoint = `${supabaseUrl}/functions/v1/customer-telemetry-ingest`
 
-    fetch(endpoint, {
+    await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }).catch((err) => {
-      console.debug('[telemetry] background send caught', err)
-    })
-  } catch (e) {
-    console.debug('[telemetry] dispatch failed', e)
+    }).catch(() => {})
+  } catch {
+    // Fail silently in client
   }
 }
+
