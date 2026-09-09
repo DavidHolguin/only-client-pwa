@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { getConfirmedLocationLocal } from '../lib/googleMaps'
 import type { CustomerOrder, OrderStatus } from '../types'
 
 /**
@@ -136,6 +137,15 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
 
   const telefonos = row.cliente_telefonos || [row.telefono1, row.telefono2].filter(Boolean).map((t: any) => String(t).trim())
 
+  const savedLocal = getConfirmedLocationLocal(cleanNum)
+  const resolvedAddress =
+    row.direccion ||
+    row.direccion_despacho ||
+    row.direccion_entrega ||
+    row.dir ||
+    savedLocal?.address ||
+    'Dirección por confirmar'
+
   return {
     id: row.id || `ord-${cleanNum}`,
     numero_pedido: cleanNum,
@@ -148,7 +158,7 @@ export function normalizeOrder(row: any, extraItems: any[] = []): CustomerOrder 
     cliente_documento: row.cliente_documento,
     cliente_telefonos: telefonos,
     destino: row.ciudad || row.destino || 'Armenia',
-    direccion: row.direccion || 'Dirección registrada en pedido',
+    direccion: resolvedAddress,
     asesor: row.asesor || 'Asesor Only Home',
     fecha_creacion: row.fecha_creacion,
     fecha_entrega_prom: row.fecha_entrega_prom,

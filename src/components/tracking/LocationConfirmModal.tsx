@@ -5,12 +5,9 @@ import {
   Check,
   Search,
   Crosshair,
-  Building2,
   Home,
   Loader2,
   Navigation,
-  Maximize2,
-  Minimize2,
   RotateCcw,
   Plus,
   Minus,
@@ -50,12 +47,6 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
   const [mapLoaded, setMapLoaded] = useState(false)
 
-  // Modo expandir únicamente el contenedor del mapa dentro del modal
-  const [isMapExpanded, setIsMapExpanded] = useState(false)
-
-  // Estado de movimiento del mapa
-  const [isMapMoving, setIsMapMoving] = useState(false)
-
   // Coordenadas seleccionadas
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
     lat: 6.2442,
@@ -68,8 +59,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
   // Inputs del formulario
   const [streetAddress, setStreetAddress] = useState(currentAddress)
-  const [aptComplement, setAptComplement] = useState('')
-  const [referenceNotes, setReferenceNotes] = useState('')
+  const [additionalInfo, setAdditionalInfo] = useState('')
   const [isLocatingGPS, setIsLocatingGPS] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false)
@@ -86,8 +76,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
         setCoords(savedCoords)
         coordsRef.current = savedCoords
         setStreetAddress(saved.address)
-        setAptComplement(saved.complement || '')
-        setReferenceNotes(saved.reference || '')
+        setAdditionalInfo(saved.complement || saved.reference || '')
       } else {
         setStreetAddress(currentAddress)
       }
@@ -113,7 +102,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           }
         }
       })
-    }, 400)
+    }, 350)
   }, [])
 
   // Inicializar Google Maps API UNA SOLA VEZ al abrir el modal
@@ -163,7 +152,19 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
         mapRef.current = map
         markerRef.current = marker
 
-        // Sincronizar arrastre manual del marker
+        // 1. Clic o tap en cualquier lugar del mapa para mover el pin directamente
+        map.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (!e.latLng) return
+          const newLat = e.latLng.lat()
+          const newLng = e.latLng.lng()
+          const newCoords = { lat: newLat, lng: newLng }
+          setCoords(newCoords)
+          coordsRef.current = newCoords
+          marker.setPosition(newCoords)
+          executeReverseGeocode(newLat, newLng)
+        })
+
+        // 2. Arrastre manual del marcador
         marker.addListener('dragend', (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return
           const newLat = e.latLng.lat()
@@ -171,34 +172,10 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
           const newCoords = { lat: newLat, lng: newLng }
           setCoords(newCoords)
           coordsRef.current = newCoords
-          map.panTo(newCoords)
           executeReverseGeocode(newLat, newLng)
         })
 
-        // Detección de movimiento del mapa
-        map.addListener('dragstart', () => {
-          setIsMapMoving(true)
-        })
-
-        map.addListener('drag', () => {
-          setIsMapMoving(true)
-        })
-
-        map.addListener('idle', () => {
-          setIsMapMoving(false)
-          const center = map.getCenter()
-          if (center) {
-            const newLat = center.lat()
-            const newLng = center.lng()
-            const newCoords = { lat: newLat, lng: newLng }
-            setCoords(newCoords)
-            coordsRef.current = newCoords
-            marker.setPosition(newCoords)
-            executeReverseGeocode(newLat, newLng)
-          }
-        })
-
-        // Vincular Autocomplete en el input
+        // 3. Vincular Autocomplete en el input
         if (autocompleteInputRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current, {
             componentRestrictions: { country: 'co' },
@@ -224,7 +201,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
             map.setZoom(17)
             marker.setPosition(newCoords)
 
-            // Blur input para cerrar teclado en móvil
+            // Cerrar teclado en móvil
             autocompleteInputRef.current?.blur()
           })
         }
@@ -260,18 +237,6 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
       isMounted = false
     }
   }, [isOpen])
-
-  // Ajustar tamaño del canvas de Google Maps al alternar "Ampliar mapa"
-  useEffect(() => {
-    if (mapRef.current) {
-      setTimeout(() => {
-        if (mapRef.current) {
-          google.maps.event.trigger(mapRef.current, 'resize')
-          mapRef.current.panTo(coordsRef.current)
-        }
-      }, 150)
-    }
-  }, [isMapExpanded])
 
   if (!isOpen) return null
 
@@ -325,7 +290,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     if (mapRef.current) {
       mapRef.current.panTo(coordsRef.current)
       mapRef.current.setZoom(17)
-      toast.info('Mapa recentrado')
+      toast.info('Mapa recentrado en el pin')
     }
   }
 
@@ -347,7 +312,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     e.preventDefault()
 
     if (!streetAddress.trim()) {
-      toast.error('Por favor escribe tu dirección o selecciona el punto en el mapa')
+      toast.error('Por favor escribe tu dirección o toca el mapa para ubicar el punto')
       return
     }
 
@@ -355,19 +320,15 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
     // Formatear dirección completa profesional
     let fullFormattedAddress = streetAddress.trim()
-    if (aptComplement.trim()) {
-      fullFormattedAddress += ` - ${aptComplement.trim()}`
-    }
-    if (referenceNotes.trim()) {
-      fullFormattedAddress += ` (${referenceNotes.trim()})`
+    if (additionalInfo.trim()) {
+      fullFormattedAddress += ` - ${additionalInfo.trim()}`
     }
 
     const locationData = {
       address: streetAddress.trim(),
       lat: coordsRef.current.lat,
       lng: coordsRef.current.lng,
-      complement: aptComplement.trim() || undefined,
-      reference: referenceNotes.trim() || undefined,
+      complement: additionalInfo.trim() || undefined,
       city,
       timestamp: new Date().toISOString(),
     }
@@ -379,8 +340,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     await updateOrderDeliveryAddress(orderNumber, fullFormattedAddress, {
       lat: coordsRef.current.lat,
       lng: coordsRef.current.lng,
-      complement: aptComplement.trim(),
-      reference: referenceNotes.trim(),
+      complement: additionalInfo.trim(),
     })
 
     setIsSubmitting(false)
@@ -407,41 +367,18 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                 Confirmar dirección de entrega
               </h3>
               <p className="text-[11px] text-slate-500 font-normal">
-                Busca tu dirección o mueve el mapa
+                Toca el mapa o busca tu dirección
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* Botón para Ampliar/Reducir SOLO el área del mapa */}
-            <button
-              type="button"
-              onClick={() => setIsMapExpanded(!isMapExpanded)}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
-              title={isMapExpanded ? 'Reducir mapa' : 'Ampliar área del mapa'}
-            >
-              {isMapExpanded ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5 text-slate-600" />
-                  <span className="text-[11px]">Reducir</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5 text-brand-blue" />
-                  <span className="text-[11px]">Ampliar</span>
-                </>
-              )}
-            </button>
-
-            {/* Cerrar modal */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Modal Body */}
@@ -496,25 +433,21 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
 
             {isReverseGeocoding && (
               <p className="text-[10px] text-brand-blue flex items-center gap-1 pl-1 pt-1 font-medium">
-                <Loader2 className="w-3 h-3 animate-spin" /> Obteniendo dirección exacta...
+                <Loader2 className="w-3 h-3 animate-spin" /> Obteniendo dirección del punto...
               </p>
             )}
           </div>
 
-          {/* Contenedor del Mapa Interactivo (Con altura expandible) */}
-          <div
-            className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 transition-all duration-300 ${
-              isMapExpanded ? 'h-[360px] sm:h-[400px]' : 'h-52 sm:h-56'
-            }`}
-          >
+          {/* Contenedor del Mapa Interactivo (Fijo y Cómodo) */}
+          <div className="relative w-full h-56 sm:h-60 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
             {/* Mapa de Google */}
-            <div ref={mapContainerRef} className="w-full h-full" />
+            <div ref={mapContainerRef} className="w-full h-full cursor-crosshair" />
 
             {/* Banner flotante interactivo superior */}
             <div className="absolute top-2.5 left-2.5 right-2.5 pointer-events-none flex justify-center z-10">
               <div className="px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-medium flex items-center gap-1.5 shadow-md">
                 <Navigation className="w-3 h-3 text-sky-400 shrink-0" />
-                <span>{isMapMoving ? 'Moviendo mapa...' : 'Mueve el mapa para fijar el punto exacto'}</span>
+                <span>Toca cualquier punto del mapa para ubicar el pin</span>
               </div>
             </div>
 
@@ -574,45 +507,27 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
                   Ingresa tu dirección manualmente
                 </p>
                 <p className="text-[11px] text-slate-500 max-w-xs font-normal">
-                  Puedes escribir la dirección y datos de entrega en los campos inferiores.
+                  Puedes escribir la dirección y datos de entrega en el campo inferior.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Formulario de Detalles (Apto / Indicaciones) */}
-          <div className="space-y-2.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                  Apto / Casa / Interior (Opcional)
-                </label>
-                <div className="relative flex items-center">
-                  <Home className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={aptComplement}
-                    onChange={(e) => setAptComplement(e.target.value)}
-                    placeholder="Ej: Apto 402, Torre B"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                  Edificio / Portería / Indicación
-                </label>
-                <div className="relative flex items-center">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={referenceNotes}
-                    onChange={(e) => setReferenceNotes(e.target.value)}
-                    placeholder="Ej: Frente al parque, portería"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all"
-                  />
-                </div>
+          {/* Formulario Unificado de Información Adicional */}
+          <div className="space-y-2">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                Información adicional (Opcional)
+              </label>
+              <div className="relative flex items-center">
+                <Home className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+                <input
+                  type="text"
+                  value={additionalInfo}
+                  onChange={(e) => setAdditionalInfo(e.target.value)}
+                  placeholder="Ej: Apto 402, Torre B, frente al parque, portería"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all"
+                />
               </div>
             </div>
 
@@ -657,4 +572,5 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
     </div>
   )
 }
+
 

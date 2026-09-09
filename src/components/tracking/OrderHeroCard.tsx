@@ -16,12 +16,14 @@ import { useTelemetry } from '../../context/TelemetryContext'
 interface OrderHeroCardProps {
   order: CustomerOrder
   onOpenAddressModal?: () => void
+  onOpenDateModal?: () => void
   onConfirmOrder?: () => void
 }
 
 export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
   order,
   onOpenAddressModal,
+  onOpenDateModal,
 }) => {
   const { trackEvent } = useTelemetry()
   const canChangeAddress = canEditDeliveryAddress(order)
@@ -151,15 +153,40 @@ export const OrderHeroCard: React.FC<OrderHeroCardProps> = ({
           </div>
 
           {/* Store & Advisor */}
-          <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-0.5 border border-border/50">
-              <Building className="w-3.5 h-3.5 text-muted-foreground" />
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-0.5 border border-border/50">
+                <Building className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Tienda y Asesor</p>
+                <p className="text-xs font-bold text-foreground">{order.tienda || 'Only Home'}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Asesor: <strong className="text-foreground/80">{order.asesor || 'Asistente Only'}</strong></p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Tienda y Asesor</p>
-              <p className="text-xs font-bold text-foreground">{order.tienda || 'Only Home'}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Asesor: <strong className="text-foreground/80">{order.asesor || 'Asistente Only'}</strong></p>
+          </div>
+
+          {/* Delivery Date */}
+          <div className="flex items-start justify-between gap-2 pt-2 border-t border-border/40">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-brand-blue/10 flex items-center justify-center shrink-0 mt-0.5 border border-brand-blue/20">
+                <span className="text-sm">📅</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Promesa de Entrega</p>
+                <p className="text-xs font-bold text-foreground">
+                  {order.fecha_entrega_prom ? new Date(order.fecha_entrega_prom).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir'}
+                </p>
+              </div>
             </div>
+            {canChangeAddress && onOpenDateModal && (
+              <button
+                onClick={() => onOpenDateModal()}
+                className="text-xs shrink-0 mt-0.5 transition-all px-3 py-1.5 rounded-xl bg-secondary text-foreground font-semibold hover:bg-secondary/80 border border-border"
+              >
+                Modificar
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, PackageCheck, FileCheck, Truck, Home } from 'lucide-react'
+import { Rocket, Package, CheckCircle2, Truck, Home } from 'lucide-react'
 import type { OrderStatus } from '../../types'
 
 interface StatusStepperProps {
@@ -8,9 +8,9 @@ interface StatusStepperProps {
 }
 
 const STEPS = [
-  { key: 'confirmed', label: 'Confirmado', shortLabel: 'Confirmado', icon: FileCheck },
-  { key: 'in_production', label: 'En Producción', shortLabel: 'En Producción', icon: PackageCheck },
-  { key: 'ready_for_dispatch', label: 'Listo', shortLabel: 'Listo', icon: Check },
+  { key: 'confirmed', label: 'Confirmado', shortLabel: 'Confirmado', icon: Rocket },
+  { key: 'in_production', label: 'En Producción', shortLabel: 'En Producción', icon: Package },
+  { key: 'ready_for_dispatch', label: 'Listo', shortLabel: 'Listo', icon: CheckCircle2 },
   { key: 'in_transit', label: 'En Ruta', shortLabel: 'En Ruta', icon: Truck },
   { key: 'delivered', label: 'Entregado', shortLabel: 'Entregado', icon: Home },
 ]
@@ -42,13 +42,13 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
   const fillPercentage = (currentIndex / (STEPS.length - 1)) * 80
 
   return (
-    <div className={`w-full py-3 ${className}`}>
+    <div className={`w-full py-2.5 ${className}`}>
       {/* Top micro-badge indicator */}
-      <div className="flex justify-between items-center mb-3 px-1">
-        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+      <div className="flex justify-between items-center mb-3 px-0.5 gap-2">
+        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase whitespace-nowrap shrink-0">
           Progreso de tu pedido
         </span>
-        <span className="text-[10px] font-extrabold text-brand-blue px-2.5 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20">
+        <span className="text-[10px] font-extrabold text-brand-blue px-2.5 py-0.5 rounded-full bg-brand-blue/10 border border-brand-blue/20 whitespace-nowrap shrink-0">
           Fase {currentIndex + 1} de 5: {currentStep?.label}
         </span>
       </div>
@@ -69,7 +69,7 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
           const Icon = step.icon
 
           return (
-            <div key={step.key} className="relative z-10 flex flex-col items-center flex-1">
+            <div key={step.key} className="relative z-10 flex flex-col items-center flex-1 min-w-0">
               {/* Outer circle wrapper for crisp center alignment */}
               <div className="h-8 flex items-center justify-center">
                 <div
@@ -81,16 +81,12 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
                       : 'bg-white border-2 border-slate-200 text-slate-400'
                   }`}
                 >
-                  {isCompleted ? (
-                    <Check className="w-4 h-4 stroke-[3]" />
-                  ) : (
-                    <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
-                  )}
+                  <Icon className="w-3.5 h-3.5 stroke-[2.2]" />
                 </div>
               </div>
               
               <span
-                className={`mt-2 text-[10px] text-center tracking-tight transition-colors duration-200 leading-tight ${
+                className={`mt-1.5 text-[9.5px] text-center tracking-tight transition-colors duration-200 whitespace-nowrap leading-none ${
                   isCurrent
                     ? 'text-brand-blue font-extrabold'
                     : isCompleted
@@ -107,3 +103,4 @@ export const StatusStepper: React.FC<StatusStepperProps> = ({ status, className 
     </div>
   )
 }
+
