@@ -20,7 +20,7 @@ export const TrackingPage: React.FC = () => {
   const queryNumero = searchParams.get('pedido') || searchParams.get('n')
   const activeNumber = paramNumero || queryNumero
 
-  const { customer } = useCustomerAuth()
+  const { customer, setCustomerFromOrder } = useCustomerAuth()
   const { trackEvent } = useTelemetry()
   const navigate = useNavigate()
 
@@ -64,6 +64,15 @@ export const TrackingPage: React.FC = () => {
               setOrder(fetched)
               localStorage.setItem('last_active_order_number', fetched.numero_pedido)
               trackEvent('order_tracking_view', { numero_pedido: fetched.numero_pedido }, fetched.id)
+
+              // Hidratar o actualizar contexto de cliente de forma transparente
+              setCustomerFromOrder({
+                cliente_nombre: fetched.cliente_nombre,
+                cliente_telefonos: fetched.cliente_telefonos || [],
+                direccion: fetched.direccion,
+                destino: fetched.destino,
+                numero_pedido: fetched.numero_pedido,
+              })
 
               // Auto-popup: si el pedido permite confirmar ubicación y aún no fue confirmado
               if (canEditDeliveryAddress(fetched)) {

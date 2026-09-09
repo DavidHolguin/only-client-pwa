@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Award, Camera, Sparkles, MessageCircle, Heart } from 'lucide-react'
 import { useCustomerAuth } from '../context/AuthContext'
-import { SAMPLE_UGC_PHOTOS } from '../lib/mockData'
+import { INITIAL_CUSTOMER, SAMPLE_UGC_PHOTOS } from '../lib/mockData'
 import { PointsBalanceCard } from '../components/club/PointsBalanceCard'
 import { MissionsList } from '../components/club/MissionsList'
 import { ReferralShareCard } from '../components/club/ReferralShareCard'
@@ -14,15 +14,20 @@ export const ClubPage: React.FC = () => {
   const [isUgcModalOpen, setIsUgcModalOpen] = useState(false)
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
 
-  if (!customer) return null
+  const effectiveCustomer = customer || {
+    ...INITIAL_CUSTOMER,
+    full_name: 'Cliente Only Home',
+    phone: '573000000000',
+    total_points: 1750,
+  }
 
   return (
     <div className="space-y-5 px-4 pb-36">
       {/* Points & Tier Card */}
-      <PointsBalanceCard customer={customer} />
+      <PointsBalanceCard customer={effectiveCustomer} />
 
       {/* Referral Viral Share */}
-      <ReferralShareCard referralCode={customer.referral_code} />
+      <ReferralShareCard referralCode={effectiveCustomer.referral_code} />
 
       {/* Gamification Missions */}
       <MissionsList
@@ -80,7 +85,7 @@ export const ClubPage: React.FC = () => {
       </div>
 
       {/* Redeemable Rewards Catalog */}
-      <RewardsCatalog userPoints={customer.total_points} />
+      <RewardsCatalog userPoints={effectiveCustomer.total_points} />
 
       {/* Modals */}
       <UgcPhotoUploaderModal

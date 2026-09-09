@@ -20,18 +20,33 @@ const NAV_ITEMS: NavItem[] = [
 export const FloatingBottomDock: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const activeOrderNumber = localStorage.getItem('last_active_order_number')
+
+  const handleNavClick = (path: string) => {
+    if (path === '/') {
+      if (activeOrderNumber) {
+        navigate(`/p/${activeOrderNumber}`)
+      } else {
+        navigate('/')
+      }
+    } else {
+      navigate(path)
+    }
+  }
 
   return (
     <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
       <nav className="pointer-events-auto flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-white/95 border border-slate-200 shadow-xl shadow-slate-900/10 max-w-md w-full backdrop-blur-xl">
         {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path
+          const isTrackingItem = item.path === '/'
+          const isTrackingActive = location.pathname === '/' || location.pathname.startsWith('/p/')
+          const isActive = isTrackingItem ? isTrackingActive : location.pathname === item.path
           const Icon = item.icon
 
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavClick(item.path)}
               className={`flex-1 relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 select-none ${
                 isActive
                   ? 'text-white'

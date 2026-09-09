@@ -13,9 +13,9 @@ import { ProfilePage } from './pages/ProfilePage'
 import { AuthPage } from './pages/AuthPage'
 import { OrderPortalPage } from './pages/OrderPortalPage'
 
-// ─── App Shell (autenticado, con Header + BottomNav) ─────────────────────────
+// ─── App Shell (Abierto, sin login forzado, con Header + BottomNav) ───────────
 const AppShell: React.FC = () => {
-  const { isAuthenticated, isLoading } = useCustomerAuth()
+  const { isLoading } = useCustomerAuth()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   if (isLoading) {
@@ -29,19 +29,17 @@ const AppShell: React.FC = () => {
     )
   }
 
-  if (!isAuthenticated) {
-    return <AuthPage />
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col max-w-md mx-auto relative shadow-2xl overflow-x-hidden">
       <HeaderBar onOpenNotifications={() => setNotificationsOpen(true)} />
       <main className="flex-1 w-full pt-2">
         <Routes>
           <Route path="/" element={<TrackingPage />} />
+          <Route path="/p/:numero_pedido" element={<TrackingPage />} />
           <Route path="/pedidos" element={<OrdersPage />} />
           <Route path="/club" element={<ClubPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -71,15 +69,9 @@ const AppShell: React.FC = () => {
   )
 }
 
-// ─── Root Router: separa el portal de pedido del app shell ───────────────────
+// ─── Root Router ─────────────────────────────────────────────────────────────
 const RootRouter: React.FC = () => (
-  <Routes>
-    {/* Portal dedicado de pedido — SIN shell, SIN autenticación requerida */}
-    <Route path="/p/:numero_pedido" element={<OrderPortalPage />} />
-
-    {/* Todo lo demás va al App Shell con autenticación */}
-    <Route path="/*" element={<AppShell />} />
-  </Routes>
+  <AppShell />
 )
 
 export function App() {

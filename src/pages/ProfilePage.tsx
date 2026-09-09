@@ -15,18 +15,25 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCustomerAuth } from '../context/AuthContext'
-import type { CustomerAddress } from '../types'
+import { INITIAL_CUSTOMER } from '../lib/mockData'
+import type { CustomerAddress, CustomerProfile } from '../types'
 import { AddressManagerModal } from '../components/profile/AddressManagerModal'
 
 export const ProfilePage: React.FC = () => {
-  const { customer, logout, updateProfile } = useCustomerAuth()
+  const { customer, updateProfile } = useCustomerAuth()
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
-  const [birthday, setBirthday] = useState(customer?.birthday || '1992-11-14')
 
-  if (!customer) return null
+  const effectiveCustomer: CustomerProfile = customer || {
+    ...INITIAL_CUSTOMER,
+    full_name: 'Cliente Only Home',
+    phone: '573000000000',
+    total_points: 1750,
+  }
+
+  const [birthday, setBirthday] = useState(effectiveCustomer.birthday || '1992-11-14')
 
   const handleSaveAddress = (newAddr: CustomerAddress) => {
-    const nextAddresses = [...customer.addresses, newAddr]
+    const nextAddresses = [...effectiveCustomer.addresses, newAddr]
     updateProfile({ addresses: nextAddresses })
   }
 
@@ -54,25 +61,25 @@ export const ProfilePage: React.FC = () => {
       <div className="p-5 rounded-3xl glass-card bg-card border border-border/80 shadow-md flex items-center gap-4">
         <div className="relative">
           <img
-            src={customer.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-            alt={customer.full_name}
+            src={effectiveCustomer.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
+            alt={effectiveCustomer.full_name}
             className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-blue"
           />
           <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-gold text-slate-950 font-bold text-[9px] uppercase font-mono">
-            {customer.tier}
+            {effectiveCustomer.tier}
           </span>
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h2 className="text-base font-extrabold text-foreground truncate">{customer.full_name}</h2>
+            <h2 className="text-base font-extrabold text-foreground truncate">{effectiveCustomer.full_name}</h2>
             <ShieldCheck className="w-4 h-4 text-brand-blue shrink-0" />
           </div>
-          <p className="text-xs font-mono text-muted-foreground mt-0.5">+{customer.phone}</p>
+          <p className="text-xs font-mono text-muted-foreground mt-0.5">+{effectiveCustomer.phone}</p>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="flex items-center gap-1 text-[11px] text-gold font-bold font-mono">
               <Flame className="w-3.5 h-3.5 fill-gold text-gold" />
-              <span>{customer.lead_temperature}° VIP Score</span>
+              <span>{effectiveCustomer.lead_temperature}° VIP Score</span>
             </span>
           </div>
         </div>
@@ -90,7 +97,7 @@ export const ProfilePage: React.FC = () => {
               <User className="w-3.5 h-3.5 text-brand-blue" />
               <span>Documento / Cédula:</span>
             </span>
-            <strong className="font-mono text-foreground">{customer.document || '1020485932'}</strong>
+            <strong className="font-mono text-foreground">{effectiveCustomer.document || 'No registrado'}</strong>
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/40 border border-border/60">
@@ -98,7 +105,7 @@ export const ProfilePage: React.FC = () => {
               <Mail className="w-3.5 h-3.5 text-brand-blue" />
               <span>Correo Electrónico:</span>
             </span>
-            <strong className="text-foreground truncate max-w-[160px]">{customer.email || 'camilo@gmail.com'}</strong>
+            <strong className="text-foreground truncate max-w-[160px]">{effectiveCustomer.email || 'No registrado'}</strong>
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/40 border border-border/60">
@@ -134,7 +141,7 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          {customer.addresses.map((addr) => (
+          {effectiveCustomer.addresses.map((addr: CustomerAddress) => (
             <div
               key={addr.id}
               className="p-3 rounded-2xl bg-secondary/40 border border-border/60 flex items-start justify-between gap-3"
@@ -180,20 +187,11 @@ export const ProfilePage: React.FC = () => {
         </button>
       </div>
 
-      {/* Logout Button */}
-      <button
-        onClick={logout}
-        className="w-full py-3 px-4 rounded-2xl bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-bold border border-destructive/20 flex items-center justify-center gap-2 transition-colors active:scale-98"
-      >
-        <LogOut className="w-4 h-4" />
-        <span>Cerrar Sesión</span>
-      </button>
-
       {/* Address Manager Modal */}
       <AddressManagerModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
-        addresses={customer.addresses}
+        addresses={effectiveCustomer.addresses}
         onSaveAddress={handleSaveAddress}
       />
     </div>

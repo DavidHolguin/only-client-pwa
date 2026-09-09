@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => void
   updateProfile: (updated: Partial<CustomerProfile>) => void
   loginAsDemo: () => void
+  setCustomerFromOrder: (order: { cliente_nombre: string; cliente_telefonos: string[]; direccion?: string | null; destino?: string | null; numero_pedido: string }) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -104,6 +105,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           STORAGE_KEY,
           JSON.stringify({ customer: resolvedProfile, token: effectiveToken })
         )
+      } else if (!saved) {
+        // 3. Si no hay sesión guardada ni phone en URL, revisar si hay un pedido activo en URL (/p/XXXXX) o en localStorage
+        let activeOrderNum = ''
+        const pathMatch = window.location.pathname.match(/\/p\/([a-zA-Z0-9_-]+)/)
+        if (pathMatch && pathMatch[1]) {
+          activeOrderNum = pathMatch[1]
+        } else {
+          activeOrderNum = params.get('pedido') || params.get('n') || localStorage.getItem('last_active_order_number') || ''
+        }
+
+        if (activeOrderNum) {
+          try {
+            const { data: dbOrder } = await supabase
+              .from('pedidos')
+              .select('*')
+              .or(`numero_pedido.eq.${activeOrderNum},opv.ilike.%${activeOrderNum}%`)
+              .limit(1)
+              .maybeSingle()
+
+            if (dbOrder) {
+              const primaryPhone = String(dbOrder.telefono1 || dbOrder.telefono2 || '').replace(/\D/g, '')
+              const guestProfile: CustomerProfile = {
+                id: `cust-${primaryPhone || activeOrderNum}`,
+                phone: primaryPhone,
+                full_name: dbOrder.cliente || 'Cliente Only Home',
+                avatar_url: '',
+                birthday: '',
+                total_points: 1750,
+                tier: 'bronce',
+                lead_temperature: 50,
+                addresses: dbOrder.direccion
+                  ? [
+                      {
+                        id: 'addr-1',
+                        alias: 'Casa / Entrega',
+                        formatted_address: dbOrder.direccion,
+                        city: dbOrder.ciudad || 'Armenia',
+                        is_default: true,
+                      },
+                    ]
+                  : [],
+                referral_code: `ONLY-${primaryPhone.slice(-4) || 'HOME'}`,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+
+              setCustomer(guestProfile)
+              setToken(`order-session-${activeOrderNum}`)
+              localStorage.setItem('last_active_order_number', dbOrder.numero_pedido || activeOrderNum)
+              localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({ customer: guestProfile, token: `order-session-${activeOrderNum}` })
+              )
+            }
+          } catch (e) {
+            console.warn('[AuthContext] Could not auto-resolve customer from order', e)
+          }
+        }
       }
       setIsLoading(false)
     }
@@ -208,6 +267,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ customer: next, token }))
   }
 
+  const setCustomerFromOrder = (orderData: {
+    cliente_nombre: string
+    cliente_telefonos: string[]
+    direccion?: string | null
+    destino?: string | null
+    numero_pedido: string
+  }) => {
+    const primaryPhone = orderData.cliente_telefonos?.[0]?.replace(/\D/g, '') || ''
+    const newCust: CustomerProfile = {
+      id: `cust-${primaryPhone || orderData.numero_pedido}`,
+      phone: primaryPhone,
+      full_name: orderData.cliente_nombre || 'Cliente Only Home',
+      avatar_url: '',
+      birthday: customer?.birthday || '',
+      total_points: customer?.total_points || 1750,
+      tier: 'bronce',
+      lead_temperature: 50,
+      addresses: orderData.direccion
+        ? [
+            {
+              id: 'addr-main',
+              alias: 'Casa / Entrega',
+              formatted_address: orderData.direccion,
+              city: orderData.destino || 'Armenia',
+              is_default: true,
+            },
+          ]
+        : customer?.addresses || [],
+      referral_code: `ONLY-${primaryPhone.slice(-4) || 'HOME'}`,
+      created_at: customer?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    const orderTok = token || `order-session-${orderData.numero_pedido}`
+    setCustomer(newCust)
+    setToken(orderTok)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ customer: newCust, token: orderTok }))
+    localStorage.setItem('last_active_order_number', orderData.numero_pedido)
+  }
+
   const loginAsDemo = () => {
     setCustomer(INITIAL_CUSTOMER)
     setToken('demo-jwt-token-2026')
@@ -229,6 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         loginAsDemo,
+        setCustomerFromOrder,
       }}
     >
       {children}

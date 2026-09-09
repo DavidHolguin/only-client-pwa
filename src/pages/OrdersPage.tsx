@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Package, CheckCircle2, Truck, Clock, ChevronRight, Star, Loader2 } from 'lucide-react'
-import { getOrdersByPhone } from '../api/orders'
+import { getOrdersByPhone, getOrderByNumber } from '../api/orders'
 import { useCustomerAuth } from '../context/AuthContext'
 import type { CustomerOrder } from '../types'
 import { ReviewOrderModal } from '../components/club/ReviewOrderModal'
@@ -18,16 +18,51 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true
-    if (customer?.phone) {
-      getOrdersByPhone(customer.phone).then((data) => {
-        if (isMounted) {
-          setOrders(data)
-          setLoading(false)
+    const loadOrders = async () => {
+      setLoading(true)
+      let foundOrders: CustomerOrder[] = []
+
+      // 1. Si tenemos teléfono del cliente autenticado / auto-resuelto
+      if (customer?.phone) {
+        try {
+          foundOrders = await getOrdersByPhone(customer.phone)
+        } catch (e) {
+          console.warn('Could not fetch by phone', e)
         }
-      })
-    } else {
-      setLoading(false)
+      }
+
+      // 2. Si no hay pedidos por teléfono o no había teléfono, consultar el último pedido activo
+      if (foundOrders.length === 0) {
+        const lastNum = localStorage.getItem('last_active_order_number')
+        if (lastNum) {
+          try {
+            const singleOrder = await getOrderByNumber(lastNum)
+            if (singleOrder) {
+              // Si este pedido tiene teléfono, intentar buscar los demás
+              if (singleOrder.cliente_telefonos && singleOrder.cliente_telefonos.length > 0) {
+                const phoneOrders = await getOrdersByPhone(singleOrder.cliente_telefonos[0])
+                if (phoneOrders.length > 0) {
+                  foundOrders = phoneOrders
+                } else {
+                  foundOrders = [singleOrder]
+                }
+              } else {
+                foundOrders = [singleOrder]
+              }
+            }
+          } catch (e) {
+            console.warn('Could not fetch single active order', e)
+          }
+        }
+      }
+
+      if (isMounted) {
+        setOrders(foundOrders)
+        setLoading(false)
+      }
     }
+
+    loadOrders()
 
     return () => {
       isMounted = false
