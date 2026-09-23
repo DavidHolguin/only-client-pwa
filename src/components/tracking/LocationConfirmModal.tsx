@@ -27,6 +27,7 @@ interface LocationConfirmModalProps {
   orderNumber: string
   currentAddress: string
   city?: string
+  isDirectAction?: boolean
   onConfirmedSuccess?: (newAddress: string, coords?: { lat: number; lng: number }) => void
 }
 
@@ -36,6 +37,7 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
   orderNumber,
   currentAddress,
   city = 'Colombia',
+  isDirectAction = false,
   onConfirmedSuccess,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -363,11 +365,20 @@ export const LocationConfirmModal: React.FC<LocationConfirmModalProps> = ({
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800 tracking-tight">
-                Confirmar dirección de entrega
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                  Confirmar ubicación de entrega
+                </h3>
+                {isDirectAction && (
+                  <span className="px-1.5 py-0.2 rounded bg-brand-blue/10 text-brand-blue text-[9px] font-extrabold uppercase">
+                    Solicitud
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-slate-500 font-normal">
-                Toca el mapa o busca tu dirección
+                {isDirectAction
+                  ? `Para la entrega de tu pedido #${orderNumber}`
+                  : 'Toca el mapa o busca tu dirección'}
               </p>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Award, Camera, ChevronRight, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { Award, Camera, ChevronRight, Loader2, Sparkles, AlertCircle, MapPin } from 'lucide-react'
 import { useCustomerAuth } from '../context/AuthContext'
 import { useTelemetry } from '../context/TelemetryContext'
 import { SAMPLE_ORDERS } from '../lib/mockData'
@@ -16,9 +16,16 @@ import { UgcPhotoUploaderModal } from '../components/club/UgcPhotoUploaderModal'
 
 export const TrackingPage: React.FC = () => {
   const { numero_pedido: paramNumero } = useParams<{ numero_pedido?: string }>()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryNumero = searchParams.get('pedido') || searchParams.get('n')
   const activeNumber = paramNumero || queryNumero
+
+  const actionParam = (searchParams.get('action') || searchParams.get('a') || '').toLowerCase()
+  const isUbicacionAction =
+    actionParam === 'ubicacion' ||
+    actionParam === 'location' ||
+    actionParam === 'direccion' ||
+    searchParams.get('modificar_ubicacion') === 'true'
 
   const { customer, setCustomerFromOrder } = useCustomerAuth()
   const { trackEvent } = useTelemetry()
@@ -29,7 +36,6 @@ export const TrackingPage: React.FC = () => {
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const [isUgcModalOpen, setIsUgcModalOpen] = useState(false)
-  const [hasPromptedAutoLocation, setHasPromptedAutoLocation] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -106,23 +112,36 @@ export const TrackingPage: React.FC = () => {
     }
   }, [activeNumber, customer?.phone])
 
+  // Activación intencional vía CRM / Deep Link (?action=ubicacion)
   useEffect(() => {
-    if (!order || loading || hasPromptedAutoLocation) return
-    const isConfirmed = Boolean(
-      getConfirmedLocationLocal(order.numero_pedido) ||
-      (order.direccion && !order.direccion.toLowerCase().includes('por confirmar') && order.direccion.trim().length > 3)
-    )
-    const dismissedThisSession = sessionStorage.getItem(`dismissed_loc_prompt_${order.numero_pedido}`)
-    const canEdit = canEditDeliveryAddress(order)
-
-    if (canEdit && !isConfirmed && !dismissedThisSession) {
-      const timer = setTimeout(() => {
-        setIsLocationModalOpen(true)
-        setHasPromptedAutoLocation(true)
-      }, 1200)
-      return () => clearTimeout(timer)
+    if (!order || loading) return
+    if (isUbicacionAction && canEditDeliveryAddress(order)) {
+      setIsLocationModalOpen(true)
     }
-  }, [order, loading, hasPromptedAutoLocation])
+  }, [order, loading, isUbicacionAction])
+
+  const handleCloseLocationModal = () => {
+    setIsLocationModalOpen(false)
+    if (
+      searchParams.has('action') ||
+      searchParams.has('a') ||
+      searchParams.has('modificar_ubicacion')
+    ) {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('action')
+      newParams.delete('a')
+      newParams.delete('modificar_ubicacion')
+      setSearchParams(newParams, { replace: true })
+    }
+  }
+
+  // Detecta si la dirección está pendiente para mostrar un banner amigable no invasivo
+  const isLocationPending = Boolean(
+    order &&
+    canEditDeliveryAddress(order) &&
+    !getConfirmedLocationLocal(order.numero_pedido) &&
+    (!order.direccion || order.direccion.toLowerCase().includes('por confirmar') || order.direccion.trim().length <= 3)
+  )
 
   const isDeliveryDay = order?.cx_status === 'in_transit'
 
@@ -217,6 +236,37 @@ export const TrackingPage: React.FC = () => {
         />
       </div>
 
+      {/* Banner Sutil de Ubicación Pendiente (No bloquea la pantalla) */}
+      {isLocationPending && (
+        <div className="px-4">
+          <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">
+                  Ubicación de entrega pendiente
+                </h4>
+                <p className="text-xs text-amber-950/80 mt-0.5 leading-snug">
+                  Fija tu punto exacto en el mapa para garantizar una entrega sin contratiempos.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                trackEvent('address_change_started', { order_id: order.numero_pedido }, order.id)
+                setIsLocationModalOpen(true)
+              }}
+              className="shrink-0 px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
+            >
+              Fijar mapa
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Gamification Incentive Banner */}
       <div className="px-4">
         <div
@@ -279,15 +329,14 @@ export const TrackingPage: React.FC = () => {
       {/* Modals */}
       <LocationConfirmModal
         isOpen={isLocationModalOpen}
-        onClose={() => {
-          setIsLocationModalOpen(false)
-          sessionStorage.setItem(`dismissed_loc_prompt_${order.numero_pedido}`, 'true')
-        }}
+        onClose={handleCloseLocationModal}
         orderNumber={order.numero_pedido}
         currentAddress={order.direccion || ''}
         city={order.destino || 'Colombia'}
+        isDirectAction={isUbicacionAction}
         onConfirmedSuccess={(newAddr) => {
           handleSaveAddress(newAddr)
+          handleCloseLocationModal()
         }}
       />
 
